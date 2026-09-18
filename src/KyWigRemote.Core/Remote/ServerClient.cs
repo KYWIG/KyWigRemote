@@ -171,6 +171,28 @@ public sealed class ServerClient : IDisposable
         return await response.Content.ReadFromJsonAsync<EnforcedCredentialSummary>(JsonOptions, cancellationToken);
     }
 
+    /// <summary>Retourne l'identifiant personnel de l'utilisateur pour cette connexion, ou null s'il n'en a pas.</summary>
+    public async Task<RevealedCredential?> GetPersonalCredentialAsync(int connectionId, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.GetAsync(
+            $"/api/connections/{connectionId}/personal-credential", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<RevealedCredential>(JsonOptions, cancellationToken);
+    }
+
+    /// <summary>Enregistre l'identifiant personnel de l'utilisateur pour cette connexion (ou globalement).</summary>
+    public async Task SavePersonalCredentialAsync(
+        int connectionId, SavePersonalCredentialRequest request, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            $"/api/connections/{connectionId}/personal-credential", request, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public void Dispose() => _http.Dispose();
 }
 

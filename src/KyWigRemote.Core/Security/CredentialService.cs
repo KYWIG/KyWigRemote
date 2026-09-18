@@ -13,12 +13,18 @@ namespace KyWigRemote.Core.Security;
 public sealed class CredentialService
 {
     private readonly ICredentialRepository _repository;
+    private readonly IPersonalCredentialRepository _personalRepository;
     private readonly CredentialProtector _protector;
     private readonly byte[] _masterKey;
 
-    public CredentialService(ICredentialRepository repository, CredentialProtector protector, byte[] masterKey)
+    public CredentialService(
+        ICredentialRepository repository,
+        IPersonalCredentialRepository personalRepository,
+        CredentialProtector protector,
+        byte[] masterKey)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _personalRepository = personalRepository ?? throw new ArgumentNullException(nameof(personalRepository));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
         _masterKey = masterKey ?? throw new ArgumentNullException(nameof(masterKey));
     }
@@ -63,4 +69,58 @@ public sealed class CredentialService
             CryptographicOperations.ZeroMemory(plaintext);
         }
     }
+
+    /// <summary>
+    /// Chiffre puis enregistre l'identifiant personnel de l'utilisateur pour une connexion
+    /// précise (ou toutes ses connexions si connectionId est null).
+    /// </summary>
+    public void SavePersonalCredential(string owner, int? connectionId, string username, string? domain, string secret)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(owner);
+        ArgumentException.ThrowIfNullOrEmpty(username);
+        ArgumentException.ThrowIfNullOrEmpty(secret);
+
+        byte[] plaintext = Encoding.UTF8.GetBytes(secret);
+        try
+        {
+            EncryptedSecret encrypted = _protector.Protect(plaintext, _masterKey);
+            _personalRepository.Save(owner, connectionId, username, domain, encrypted);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
+    }
+
+    /// <summary>
+    /// Déchiffre l'identifiant personnel de l'utilisateur pour la connexion : d'abord
+    /// l'entrée propre à la connexion, sinon l'entrée globale. Retourne null si aucune.
+    /// </summary>
+    public RevealedLogin? RevealPersonalCredential(string owner, int? connectionId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(owner);
+
+        StoredPersonalCredential? stored = _personalRepository.Find(owner, connectionId);
+        if (stored is null && connectionId is not null)
+        {
+            stored = _personalRepository.Find(owner, null); // repli sur l'identifiant global
+        }
+        if (stored is null)
+        {
+            return null;
+        }
+
+        byte[] plaintext = _protector.Unprotect(stored.Secret, _masterKey);
+        try
+        {
+            return new RevealedLogin(stored.Username, stored.Domain, Encoding.UTF8.GetString(plaintext));
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
+    }
 }
+
+/// <summary>Identifiant déchiffré prêt à injecter dans une session (à utiliser puis lâcher).</summary>
+public sealed record RevealedLogin(string Username, string? Domain, string Secret);

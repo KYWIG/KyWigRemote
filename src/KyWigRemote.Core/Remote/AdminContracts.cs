@@ -39,10 +39,20 @@ public sealed record CreateConnectionRequest(
     int? EnforcedCredentialId);
 
 /// <summary>
-/// Identifiant révélé pour ouvrir une session (mode imposé). Contient le secret en clair :
-/// à n'utiliser qu'au moment d'ouvrir la session, puis à lâcher.
+/// Identifiant révélé pour ouvrir une session (mode imposé ou personnel). Contient le secret
+/// en clair : à n'utiliser qu'au moment d'ouvrir la session, puis à lâcher.
 /// </summary>
 public sealed record RevealedCredential(string Username, string? Domain, string Secret);
+
+/// <summary>
+/// Demande d'enregistrement d'un identifiant personnel. Le propriétaire est l'utilisateur
+/// authentifié (déduit du jeton, jamais de la requête).
+/// </summary>
+/// <param name="Username">Nom d'utilisateur du compte personnel.</param>
+/// <param name="Domain">Domaine (facultatif).</param>
+/// <param name="Password">Mot de passe (chiffré côté serveur).</param>
+/// <param name="Global">Vrai pour l'appliquer à toutes les connexions ; faux pour cette connexion seule.</param>
+public sealed record SavePersonalCredentialRequest(string Username, string? Domain, string Password, bool Global);
 
 /// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
 public sealed record CreatedId(int Id);

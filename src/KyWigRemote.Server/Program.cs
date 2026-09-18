@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -53,11 +54,14 @@ var tokenService = new TokenService(signingKey, options.Authentication.Jwt);
 // Chiffrement des identifiants imposés : clé maître générée et persistée si absente.
 byte[] credentialKey = ResolveCredentialMasterKey(settingsStore);
 var credentialRepository = new SqliteCredentialRepository(database);
-var credentialService = new CredentialService(credentialRepository, new CredentialProtector(), credentialKey);
+var personalRepository = new SqlitePersonalCredentialRepository(database);
+var credentialService = new CredentialService(
+    credentialRepository, personalRepository, new CredentialProtector(), credentialKey);
 
 builder.Services.AddSingleton<IConnectionRepository>(connectionRepository);
 builder.Services.AddSingleton<ILocalAccountRepository>(localAccounts);
 builder.Services.AddSingleton<ICredentialRepository>(credentialRepository);
+builder.Services.AddSingleton<IPersonalCredentialRepository>(personalRepository);
 builder.Services.AddSingleton(passwordHasher);
 builder.Services.AddSingleton(localAuthenticator);
 builder.Services.AddSingleton(tokenService);
@@ -153,6 +157,30 @@ app.MapPost("/api/auth/login", (LoginRequest request, LocalAuthenticator local, 
 // Arborescence partagée : désormais PROTÉGÉE (jeton requis).
 app.MapGet("/api/tree", (IConnectionRepository connections) => Results.Ok(connections.GetTree()))
     .RequireAuthorization();
+
+// Identifiants personnels : chaque utilisateur gère les siens (propriétaire = jeton).
+app.MapGet("/api/connections/{id:int}/personal-credential",
+    (int id, ClaimsPrincipal user, CredentialService credentials) =>
+{
+    string owner = user.Identity?.Name ?? string.Empty;
+    RevealedLogin? login = credentials.RevealPersonalCredential(owner, id);
+    return login is null
+        ? Results.NotFound()
+        : Results.Ok(new RevealedCredential(login.Username, login.Domain, login.Secret));
+}).RequireAuthorization();
+
+app.MapPost("/api/connections/{id:int}/personal-credential",
+    (int id, SavePersonalCredentialRequest request, ClaimsPrincipal user, CredentialService credentials) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+    {
+        return Results.BadRequest(new { error = "Utilisateur et mot de passe sont requis." });
+    }
+    string owner = user.Identity?.Name ?? string.Empty;
+    int? connectionId = request.Global ? null : id;
+    credentials.SavePersonalCredential(owner, connectionId, request.Username, request.Domain, request.Password);
+    return Results.NoContent();
+}).RequireAuthorization();
 
 // --- Administration : réservée aux comptes administrateurs ---
 RouteGroupBuilder admin = app.MapGroup("/api/admin").RequireAuthorization("Admin");

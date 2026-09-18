@@ -16,7 +16,7 @@ namespace KyWigRemote.Client.Forms;
 /// </summary>
 internal sealed class SessionPanel : DockContent
 {
-    public SessionPanel(RemoteConnection connection, CredentialMode effectiveMode)
+    public SessionPanel(RemoteConnection connection, CredentialMode effectiveMode, string? resolvedUsername)
     {
         Text = connection.Name;
         DockAreas = DockAreas.Document;
@@ -24,6 +24,9 @@ internal sealed class SessionPanel : DockContent
 
         string protocol = connection.Protocol.ToString().ToUpperInvariant();
         string story = connection.Protocol == RemoteProtocol.Rdp ? "E5 (RDP)" : "E6 (SSH)";
+        string identity = resolvedUsername is null
+            ? string.Empty
+            : $"Identifiant résolu : {resolvedUsername}.\r\n";
 
         var label = new Label
         {
@@ -33,7 +36,8 @@ internal sealed class SessionPanel : DockContent
             Font = new Font("Segoe UI", 10f),
             Text =
                 $"Session {protocol} vers « {connection.Name} » ({connection.Host}:{connection.Port})\r\n\r\n" +
-                $"Mode d'identifiants résolu : {DescribeMode(effectiveMode)}.\r\n\r\n" +
+                $"Mode d'identifiants résolu : {DescribeMode(effectiveMode)}.\r\n" +
+                identity + "\r\n" +
                 $"L'ouverture réelle de la session est à implémenter — story {story}.\r\n" +
                 "Cet onglet est le conteneur qui accueillera le contrôle de session.",
         };

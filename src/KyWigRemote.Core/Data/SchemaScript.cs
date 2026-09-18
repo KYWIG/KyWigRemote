@@ -8,7 +8,7 @@ namespace KyWigRemote.Core.Data;
 internal static class SchemaScript
 {
     /// <summary>Version de schéma produite par ce script (dernière migration incluse).</summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     /// <summary>DDL de la version 1 : tables du domaine, dans l'ordre des dépendances de clés étrangères.</summary>
     public const string V1 = """
@@ -138,5 +138,30 @@ internal static class SchemaScript
             created_at    TEXT NOT NULL,
             updated_at    TEXT NOT NULL
         );
+        """;
+
+    /// <summary>
+    /// Migration v3 : identifiants personnels adaptés au modèle client/serveur.
+    /// L'ancienne table (schéma DPAPI par SID, jamais utilisée) est remplacée par une table
+    /// possédée par « owner » (l'utilisateur connecté) et chiffrée en AES-256-GCM.
+    /// </summary>
+    public const string V3 = """
+        DROP TABLE IF EXISTS personal_credentials;
+
+        CREATE TABLE personal_credentials (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner          TEXT NOT NULL,
+            connection_id  INTEGER REFERENCES connections(id) ON DELETE CASCADE, -- NULL = global
+            username       TEXT NOT NULL,
+            domain         TEXT,
+            secret_cipher  BLOB NOT NULL,
+            secret_nonce   BLOB NOT NULL,
+            secret_tag     BLOB NOT NULL,
+            created_at     TEXT NOT NULL,
+            updated_at     TEXT NOT NULL
+        );
+
+        CREATE UNIQUE INDEX idx_personal_owner_conn
+            ON personal_credentials(owner, IFNULL(connection_id, -1));
         """;
 }

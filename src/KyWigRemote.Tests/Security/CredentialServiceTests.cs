@@ -17,8 +17,20 @@ public class CredentialServiceTests
     {
         temp.Database.Initialize();
         repository = new SqliteCredentialRepository(temp.Database);
+        var personal = new SqlitePersonalCredentialRepository(temp.Database);
         byte[] masterKey = RandomNumberGenerator.GetBytes(CredentialProtector.KeySize);
-        return new CredentialService(repository, new CredentialProtector(), masterKey);
+        return new CredentialService(repository, personal, new CredentialProtector(), masterKey);
+    }
+
+    // Crée une vraie connexion (la table personal_credentials a une clé étrangère vers connections).
+    private static int NewConnection(TempDatabase temp)
+    {
+        var repo = new SqliteConnectionRepository(temp.Database);
+        int folder = repo.AddFolder(new KyWigRemote.Core.Model.ConnectionFolder { Name = "F" }, null);
+        return repo.AddConnection(new KyWigRemote.Core.Model.RemoteConnection
+        {
+            Name = "C", Protocol = KyWigRemote.Core.Model.RemoteProtocol.Rdp, Host = "192.0.2.1", Port = 3389,
+        }, folder);
     }
 
     [Fact]
@@ -73,5 +85,46 @@ public class CredentialServiceTests
             (File.Exists(wal) ? Encoding.UTF8.GetString(File.ReadAllBytes(wal)) : string.Empty);
 
         Assert.DoesNotContain(FakeSecret, haystack);
+    }
+
+    [Fact]
+    public void PersonalSavePuisReveal_RetourneLeSecret_ParConnexion()
+    {
+        using var temp = new TempDatabase();
+        CredentialService service = NewService(temp, out _);
+        int connId = NewConnection(temp);
+
+        service.SavePersonalCredential("alice", connId, "alice.admin", "kywig", FakeSecret);
+
+        RevealedLogin? revealed = service.RevealPersonalCredential("alice", connId);
+        Assert.NotNull(revealed);
+        Assert.Equal("alice.admin", revealed!.Username);
+        Assert.Equal(FakeSecret, revealed.Secret);
+    }
+
+    [Fact]
+    public void PersonalReveal_ReplieSurLIdentifiantGlobal_QuandRienDeSpecifique()
+    {
+        using var temp = new TempDatabase();
+        CredentialService service = NewService(temp, out _);
+
+        // Un identifiant global (connexion null), rien de spécifique à la connexion 9.
+        service.SavePersonalCredential("bob", connectionId: null, "bob.global", null, FakeSecret);
+
+        RevealedLogin? revealed = service.RevealPersonalCredential("bob", 9);
+        Assert.NotNull(revealed);
+        Assert.Equal("bob.global", revealed!.Username);
+    }
+
+    [Fact]
+    public void PersonalReveal_NeFuitPasEntreUtilisateurs()
+    {
+        using var temp = new TempDatabase();
+        CredentialService service = NewService(temp, out _);
+        int connId = NewConnection(temp);
+        service.SavePersonalCredential("alice", connId, "alice.admin", null, FakeSecret);
+
+        // Bob n'a rien enregistré : il ne doit rien obtenir sur la même connexion.
+        Assert.Null(service.RevealPersonalCredential("bob", connId));
     }
 }

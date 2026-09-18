@@ -58,7 +58,7 @@ internal sealed class MainForm : Form
         _properties = new PropertiesPanel();
 
         _connections = new ConnectionsPanel();
-        _connections.ConnectionActivated += OpenSession;
+        _connections.ConnectionActivated += connection => _ = OpenSessionAsync(connection);
         _connections.SelectionChanged += item => _properties.ShowFor(item);
 
         MenuStrip menu = BuildMenu();
@@ -231,16 +231,72 @@ internal sealed class MainForm : Form
         RemoteConnection? connection = _connections.SelectedConnection;
         if (connection is not null)
         {
-            OpenSession(connection);
+            _ = OpenSessionAsync(connection);
         }
     }
 
     /// <summary>Ouvre (ou ré-active) un onglet de session pour la connexion demandée.</summary>
-    private void OpenSession(RemoteConnection connection)
+    private async Task OpenSessionAsync(RemoteConnection connection)
     {
-        // Résout le mode d'identifiants effectif (héritage des dossiers) avant d'ouvrir l'onglet.
-        CredentialMode effectiveMode = CredentialResolver.ResolveEffectiveMode(_roots, connection);
-        var session = new SessionPanel(connection, effectiveMode);
+        // Résout le mode d'identifiants effectif (héritage des dossiers), puis obtient
+        // l'identifiant selon le mode avant d'ouvrir l'onglet.
+        CredentialMode mode = CredentialResolver.ResolveEffectiveMode(_roots, connection);
+        string? resolvedUser = null;
+
+        try
+        {
+            switch (mode)
+            {
+                case CredentialMode.Personal:
+                {
+                    RevealedCredential? existing = await _server.GetPersonalCredentialAsync(connection.Id);
+                    if (existing is not null)
+                    {
+                        resolvedUser = existing.Username;
+                    }
+                    else
+                    {
+                        using var prompt = new CredentialPromptDialog(connection.Name, Environment.UserName, allowRemember: true);
+                        if (prompt.ShowDialog(this) != DialogResult.OK)
+                        {
+                            return;
+                        }
+                        resolvedUser = prompt.Username;
+                        if (prompt.Remember || prompt.RememberGlobal)
+                        {
+                            await _server.SavePersonalCredentialAsync(connection.Id,
+                                new SavePersonalCredentialRequest(prompt.Username, null, prompt.Password, prompt.RememberGlobal));
+                        }
+                    }
+                    break;
+                }
+
+                case CredentialMode.Prompt:
+                {
+                    using var prompt = new CredentialPromptDialog(connection.Name, Environment.UserName, allowRemember: false);
+                    if (prompt.ShowDialog(this) != DialogResult.OK)
+                    {
+                        return;
+                    }
+                    resolvedUser = prompt.Username;
+                    break;
+                }
+
+                case CredentialMode.Enforced:
+                    // Le secret imposé sera injecté à l'ouverture réelle (E5) ; sa révélation est
+                    // réservée à l'admin pour l'instant (contrôle par groupes AD = E3).
+                    break;
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            MessageBox.Show(this,
+                "Erreur de communication avec le serveur pour les identifiants.",
+                "KyWigRemote", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var session = new SessionPanel(connection, mode, resolvedUser);
         session.Show(_dockPanel, DockState.Document);
     }
 
