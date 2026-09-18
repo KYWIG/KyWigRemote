@@ -297,6 +297,17 @@ internal sealed class MainForm : Form
             return;
         }
 
+        // Journalise l'ouverture (best-effort : n'empêche pas l'affichage de l'onglet).
+        try
+        {
+            await _server.ReportSessionOpenAsync(
+                new SessionOpenReport(connection.Id, mode.ToString().ToUpperInvariant(), "OK"));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Sans importance pour l'ouverture de l'onglet.
+        }
+
         var session = new SessionPanel(connection, mode, resolvedUser);
         session.Show(_dockPanel, DockState.Document);
     }

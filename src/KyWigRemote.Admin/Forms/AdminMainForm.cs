@@ -42,9 +42,12 @@ internal sealed class AdminMainForm : Form
         connections.Click += (_, _) => OpenConnections();
         var enforced = new ToolStripButton("Identifiants imposés…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         enforced.Click += (_, _) => OpenEnforcedCredentials();
+        var auditButton = new ToolStripButton("Journal d'audit…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
+        auditButton.Click += (_, _) => OpenAudit();
         toolbar.Items.AddRange(new ToolStripItem[]
         {
             refresh, new ToolStripSeparator(), create, new ToolStripSeparator(), connections, enforced,
+            new ToolStripSeparator(), auditButton,
         });
 
         var header = new Label
@@ -129,6 +132,12 @@ internal sealed class AdminMainForm : Form
     private void OpenEnforcedCredentials()
     {
         using var form = new EnforcedCredentialsAdminForm(_server);
+        form.ShowDialog(this);
+    }
+
+    private void OpenAudit()
+    {
+        using var form = new AuditViewerForm(_server);
         form.ShowDialog(this);
     }
 

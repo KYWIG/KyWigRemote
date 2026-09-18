@@ -63,6 +63,21 @@ public sealed record SavePersonalCredentialRequest(string Username, string? Doma
 public sealed record PersonalCredentialSummary(
     int Id, int? ConnectionId, string? ConnectionName, string Username, string? Domain);
 
+/// <summary>Compte-rendu d'ouverture de session envoyé par le client pour le journal d'audit.</summary>
+public sealed record SessionOpenReport(int ConnectionId, string CredentialMode, string Result);
+
+/// <summary>Vue d'un événement d'audit pour la consultation.</summary>
+public sealed record AuditEventSummary(
+    long Id,
+    DateTimeOffset OccurredAt,
+    string? UserName,
+    string Action,
+    string? TargetType,
+    int? TargetId,
+    string? CredentialMode,
+    string? Result,
+    string? Details);
+
 /// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
 public sealed record CreatedId(int Id);
 

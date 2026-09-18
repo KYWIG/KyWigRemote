@@ -208,6 +208,33 @@ public sealed class ServerClient : IDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Signale au serveur l'ouverture d'une session (pour le journal d'audit).</summary>
+    public async Task ReportSessionOpenAsync(SessionOpenReport report, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "/api/audit/session-open", report, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Consulte le journal d'audit (réservé aux administrateurs), avec filtres facultatifs.</summary>
+    public async Task<IReadOnlyList<AuditEventSummary>> ListAuditAsync(
+        string? user = null, string? result = null, int limit = 500, CancellationToken cancellationToken = default)
+    {
+        var query = new List<string> { $"limit={limit}" };
+        if (!string.IsNullOrWhiteSpace(user))
+        {
+            query.Add($"user={Uri.EscapeDataString(user)}");
+        }
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            query.Add($"result={Uri.EscapeDataString(result)}");
+        }
+        string url = "/api/admin/audit?" + string.Join("&", query);
+
+        List<AuditEventSummary>? list = await _http.GetFromJsonAsync<List<AuditEventSummary>>(url, JsonOptions, cancellationToken);
+        return list ?? new List<AuditEventSummary>();
+    }
+
     public void Dispose() => _http.Dispose();
 }
 
