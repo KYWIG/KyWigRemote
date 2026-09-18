@@ -181,6 +181,50 @@ admin.MapPost("/local-accounts",
         new LocalAccountSummary(account.Id, account.Username, account.DisplayName, account.IsAdmin, account.Disabled));
 });
 
+// Gestion de l'arborescence (création / suppression de dossiers et connexions).
+admin.MapPost("/folders", (CreateFolderRequest request, IConnectionRepository connections) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name))
+    {
+        return Results.BadRequest(new { error = "Le nom du dossier est requis." });
+    }
+    int id = connections.AddFolder(
+        new ConnectionFolder { Name = request.Name, CredentialMode = request.CredentialMode },
+        request.ParentId);
+    return Results.Created($"/api/admin/folders/{id}", new CreatedId(id));
+});
+
+admin.MapPost("/connections", (CreateConnectionRequest request, IConnectionRepository connections) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Host))
+    {
+        return Results.BadRequest(new { error = "Le nom et l'hôte de la connexion sont requis." });
+    }
+    int id = connections.AddConnection(new RemoteConnection
+    {
+        Name = request.Name,
+        Protocol = request.Protocol,
+        Host = request.Host,
+        Port = request.Port,
+        Domain = request.Domain,
+        Description = request.Description,
+        CredentialMode = request.CredentialMode,
+    }, request.FolderId);
+    return Results.Created($"/api/admin/connections/{id}", new CreatedId(id));
+});
+
+admin.MapDelete("/folders/{id:int}", (int id, IConnectionRepository connections) =>
+{
+    connections.DeleteFolder(id);
+    return Results.NoContent();
+});
+
+admin.MapDelete("/connections/{id:int}", (int id, IConnectionRepository connections) =>
+{
+    connections.DeleteConnection(id);
+    return Results.NoContent();
+});
+
 app.Run();
 
 // --- Ouverture de la base selon la configuration ---

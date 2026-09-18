@@ -38,7 +38,9 @@ internal sealed class AdminMainForm : Form
         refresh.Click += async (_, _) => await LoadAccountsAsync();
         var create = new ToolStripButton("Nouveau compte") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         create.Click += async (_, _) => await CreateAccountAsync();
-        toolbar.Items.AddRange(new ToolStripItem[] { refresh, new ToolStripSeparator(), create });
+        var connections = new ToolStripButton("Connexions…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
+        connections.Click += (_, _) => OpenConnections();
+        toolbar.Items.AddRange(new ToolStripItem[] { refresh, new ToolStripSeparator(), create, new ToolStripSeparator(), connections });
 
         var header = new Label
         {
@@ -111,6 +113,12 @@ internal sealed class AdminMainForm : Form
                 "Impossible de charger les comptes depuis le serveur.",
                 "KyWigRemote — Administration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
+    }
+
+    private void OpenConnections()
+    {
+        using var form = new ConnectionsAdminForm(_server);
+        form.ShowDialog(this);
     }
 
     private async Task CreateAccountAsync()

@@ -1,3 +1,5 @@
+using KyWigRemote.Core.Model;
+
 namespace KyWigRemote.Core.Remote;
 
 /// <summary>
@@ -17,3 +19,23 @@ public sealed record LocalAccountSummary(int Id, string Username, string? Displa
 /// <param name="DisplayName">Nom d'affichage (facultatif).</param>
 /// <param name="IsAdmin">Attribuer les droits d'administration.</param>
 public sealed record CreateLocalAccountRequest(string Username, string Password, string? DisplayName, bool IsAdmin);
+
+/// <summary>Demande de création d'un dossier dans l'arborescence.</summary>
+/// <param name="Name">Nom du dossier.</param>
+/// <param name="ParentId">Dossier parent (null = racine).</param>
+/// <param name="CredentialMode">Mode d'identifiants du dossier.</param>
+public sealed record CreateFolderRequest(string Name, int? ParentId, CredentialMode CredentialMode);
+
+/// <summary>Demande de création d'une connexion dans un dossier.</summary>
+public sealed record CreateConnectionRequest(
+    int FolderId,
+    string Name,
+    RemoteProtocol Protocol,
+    string Host,
+    int Port,
+    string? Domain,
+    string? Description,
+    CredentialMode CredentialMode);
+
+/// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
+public sealed record CreatedId(int Id);

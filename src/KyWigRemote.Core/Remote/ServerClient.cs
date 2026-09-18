@@ -119,6 +119,40 @@ public sealed class ServerClient : IDisposable
         return await response.Content.ReadFromJsonAsync<LocalAccountSummary>(JsonOptions, cancellationToken);
     }
 
+    /// <summary>Crée un dossier et retourne son identifiant (réservé aux administrateurs).</summary>
+    public async Task<int> CreateFolderAsync(CreateFolderRequest request, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "/api/admin/folders", request, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        CreatedId? created = await response.Content.ReadFromJsonAsync<CreatedId>(JsonOptions, cancellationToken);
+        return created?.Id ?? 0;
+    }
+
+    /// <summary>Crée une connexion et retourne son identifiant (réservé aux administrateurs).</summary>
+    public async Task<int> CreateConnectionAsync(CreateConnectionRequest request, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "/api/admin/connections", request, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        CreatedId? created = await response.Content.ReadFromJsonAsync<CreatedId>(JsonOptions, cancellationToken);
+        return created?.Id ?? 0;
+    }
+
+    /// <summary>Supprime un dossier (et son contenu en cascade).</summary>
+    public async Task DeleteFolderAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.DeleteAsync($"/api/admin/folders/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Supprime une connexion.</summary>
+    public async Task DeleteConnectionAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.DeleteAsync($"/api/admin/connections/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public void Dispose() => _http.Dispose();
 }
 
