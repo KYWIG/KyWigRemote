@@ -39,3 +39,16 @@ public sealed record CreateConnectionRequest(
 
 /// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
 public sealed record CreatedId(int Id);
+
+/// <summary>Demande de création d'un identifiant imposé. Le secret est chiffré côté serveur.</summary>
+/// <param name="Label">Libellé lisible.</param>
+/// <param name="Username">Nom d'utilisateur du compte.</param>
+/// <param name="Domain">Domaine (facultatif).</param>
+/// <param name="Secret">Mot de passe en clair (chiffré immédiatement, jamais stocké tel quel).</param>
+/// <param name="AllowedGroups">Groupes AD autorisés, séparés par « ; » (facultatif).</param>
+public sealed record CreateEnforcedCredentialRequest(
+    string Label, string Username, string? Domain, string Secret, string? AllowedGroups);
+
+/// <summary>Vue d'un identifiant imposé pour l'administration : jamais de secret.</summary>
+public sealed record EnforcedCredentialSummary(
+    int Id, string Label, string Username, string? Domain, string? AllowedGroups);

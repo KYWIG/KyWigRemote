@@ -40,7 +40,12 @@ internal sealed class AdminMainForm : Form
         create.Click += async (_, _) => await CreateAccountAsync();
         var connections = new ToolStripButton("Connexions…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         connections.Click += (_, _) => OpenConnections();
-        toolbar.Items.AddRange(new ToolStripItem[] { refresh, new ToolStripSeparator(), create, new ToolStripSeparator(), connections });
+        var enforced = new ToolStripButton("Identifiants imposés…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
+        enforced.Click += (_, _) => OpenEnforcedCredentials();
+        toolbar.Items.AddRange(new ToolStripItem[]
+        {
+            refresh, new ToolStripSeparator(), create, new ToolStripSeparator(), connections, enforced,
+        });
 
         var header = new Label
         {
@@ -118,6 +123,12 @@ internal sealed class AdminMainForm : Form
     private void OpenConnections()
     {
         using var form = new ConnectionsAdminForm(_server);
+        form.ShowDialog(this);
+    }
+
+    private void OpenEnforcedCredentials()
+    {
+        using var form = new EnforcedCredentialsAdminForm(_server);
         form.ShowDialog(this);
     }
 

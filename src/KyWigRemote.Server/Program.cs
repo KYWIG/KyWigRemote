@@ -50,11 +50,18 @@ var localAuthenticator = new LocalAuthenticator(localAccounts, passwordHasher);
 byte[] signingKey = ResolveSigningKey(options.Authentication.Jwt, settingsStore);
 var tokenService = new TokenService(signingKey, options.Authentication.Jwt);
 
+// Chiffrement des identifiants imposés : clé maître générée et persistée si absente.
+byte[] credentialKey = ResolveCredentialMasterKey(settingsStore);
+var credentialRepository = new SqliteCredentialRepository(database);
+var credentialService = new CredentialService(credentialRepository, new CredentialProtector(), credentialKey);
+
 builder.Services.AddSingleton<IConnectionRepository>(connectionRepository);
 builder.Services.AddSingleton<ILocalAccountRepository>(localAccounts);
+builder.Services.AddSingleton<ICredentialRepository>(credentialRepository);
 builder.Services.AddSingleton(passwordHasher);
 builder.Services.AddSingleton(localAuthenticator);
 builder.Services.AddSingleton(tokenService);
+builder.Services.AddSingleton(credentialService);
 
 // Authentification par jeton JWT.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -225,6 +232,36 @@ admin.MapDelete("/connections/{id:int}", (int id, IConnectionRepository connecti
     return Results.NoContent();
 });
 
+// Identifiants imposés (chiffrés au repos). Le secret n'est jamais renvoyé par ces endpoints.
+admin.MapGet("/enforced-credentials", (ICredentialRepository credentials) =>
+{
+    IEnumerable<EnforcedCredentialSummary> list = credentials.ListEnforced()
+        .Select(c => new EnforcedCredentialSummary(c.Id, c.Label, c.Username, c.Domain, c.AllowedGroups));
+    return Results.Ok(list);
+});
+
+admin.MapPost("/enforced-credentials", (CreateEnforcedCredentialRequest request, CredentialService credentials) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Label)
+        || string.IsNullOrWhiteSpace(request.Username)
+        || string.IsNullOrWhiteSpace(request.Secret))
+    {
+        return Results.BadRequest(new { error = "Libellé, utilisateur et secret sont requis." });
+    }
+
+    int id = credentials.SaveEnforcedCredential(
+        new EnforcedCredential
+        {
+            Label = request.Label,
+            Username = request.Username,
+            Domain = request.Domain,
+            AllowedGroups = request.AllowedGroups,
+        },
+        request.Secret);
+    return Results.Created($"/api/admin/enforced-credentials/{id}",
+        new EnforcedCredentialSummary(id, request.Label, request.Username, request.Domain, request.AllowedGroups));
+});
+
 app.Run();
 
 // --- Ouverture de la base selon la configuration ---
@@ -261,6 +298,21 @@ static byte[] ResolveSigningKey(JwtOptions jwt, ISettingsStore settings)
     if (string.IsNullOrEmpty(stored))
     {
         stored = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)); // 384 bits
+        settings.Set(settingKey, stored);
+    }
+    return Convert.FromBase64String(stored);
+}
+
+// --- Résolution de la clé maître de chiffrement des identifiants ---
+// Générée aléatoirement au premier démarrage puis persistée en base (jamais dans le code
+// ni un fichier versionné). La perdre rend les secrets stockés indéchiffrables.
+static byte[] ResolveCredentialMasterKey(ISettingsStore settings)
+{
+    const string settingKey = "Credential:MasterKey";
+    string? stored = settings.Get(settingKey);
+    if (string.IsNullOrEmpty(stored))
+    {
+        stored = Convert.ToBase64String(RandomNumberGenerator.GetBytes(CredentialProtector.KeySize));
         settings.Set(settingKey, stored);
     }
     return Convert.FromBase64String(stored);

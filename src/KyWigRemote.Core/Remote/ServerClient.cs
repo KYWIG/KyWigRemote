@@ -153,6 +153,24 @@ public sealed class ServerClient : IDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Liste les identifiants imposés (métadonnées, sans secret).</summary>
+    public async Task<IReadOnlyList<EnforcedCredentialSummary>> ListEnforcedCredentialsAsync(CancellationToken cancellationToken = default)
+    {
+        List<EnforcedCredentialSummary>? list = await _http.GetFromJsonAsync<List<EnforcedCredentialSummary>>(
+            "/api/admin/enforced-credentials", JsonOptions, cancellationToken);
+        return list ?? new List<EnforcedCredentialSummary>();
+    }
+
+    /// <summary>Crée un identifiant imposé (le secret est chiffré côté serveur).</summary>
+    public async Task<EnforcedCredentialSummary?> CreateEnforcedCredentialAsync(
+        CreateEnforcedCredentialRequest request, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "/api/admin/enforced-credentials", request, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<EnforcedCredentialSummary>(JsonOptions, cancellationToken);
+    }
+
     public void Dispose() => _http.Dispose();
 }
 
