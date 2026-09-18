@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using KyWigRemote.Core.Remote;
 using KyWigRemote.Core.Security;
 
 namespace KyWigRemote.Core.Data;
@@ -70,6 +71,44 @@ public sealed class SqlitePersonalCredentialRepository : IPersonalCredentialRepo
             reader.GetString(0),
             reader.IsDBNull(1) ? null : reader.GetString(1),
             secret);
+    }
+
+    public IReadOnlyList<PersonalCredentialSummary> ListByOwner(string owner)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(owner);
+
+        using SqliteConnection connection = _database.OpenConnection();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT pc.id, pc.connection_id, c.name, pc.username, pc.domain " +
+            "FROM personal_credentials pc LEFT JOIN connections c ON c.id = pc.connection_id " +
+            "WHERE pc.owner = $owner ORDER BY c.name COLLATE NOCASE, pc.id;";
+        command.Parameters.AddWithValue("$owner", owner);
+
+        var result = new List<PersonalCredentialSummary>();
+        using SqliteDataReader reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            result.Add(new PersonalCredentialSummary(
+                reader.GetInt32(0),
+                reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.GetString(3),
+                reader.IsDBNull(4) ? null : reader.GetString(4)));
+        }
+        return result;
+    }
+
+    public bool Delete(string owner, int id)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(owner);
+
+        using SqliteConnection connection = _database.OpenConnection();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM personal_credentials WHERE id = $id AND owner = $owner;";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$owner", owner);
+        return command.ExecuteNonQuery() > 0;
     }
 
     private static void BindCommon(

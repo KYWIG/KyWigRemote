@@ -54,6 +54,15 @@ public sealed record RevealedCredential(string Username, string? Domain, string 
 /// <param name="Global">Vrai pour l'appliquer à toutes les connexions ; faux pour cette connexion seule.</param>
 public sealed record SavePersonalCredentialRequest(string Username, string? Domain, string Password, bool Global);
 
+/// <summary>Vue d'un identifiant personnel de l'utilisateur (jamais de secret).</summary>
+/// <param name="Id">Identifiant de l'enregistrement.</param>
+/// <param name="ConnectionId">Connexion visée, ou null si l'identifiant est global.</param>
+/// <param name="ConnectionName">Nom de la connexion, si applicable.</param>
+/// <param name="Username">Nom d'utilisateur enregistré.</param>
+/// <param name="Domain">Domaine (facultatif).</param>
+public sealed record PersonalCredentialSummary(
+    int Id, int? ConnectionId, string? ConnectionName, string Username, string? Domain);
+
 /// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
 public sealed record CreatedId(int Id);
 

@@ -193,6 +193,21 @@ public sealed class ServerClient : IDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Liste les identifiants personnels de l'utilisateur connecté (sans secret).</summary>
+    public async Task<IReadOnlyList<PersonalCredentialSummary>> ListMyPersonalCredentialsAsync(CancellationToken cancellationToken = default)
+    {
+        List<PersonalCredentialSummary>? list = await _http.GetFromJsonAsync<List<PersonalCredentialSummary>>(
+            "/api/personal-credentials", JsonOptions, cancellationToken);
+        return list ?? new List<PersonalCredentialSummary>();
+    }
+
+    /// <summary>Supprime l'un des identifiants personnels de l'utilisateur connecté.</summary>
+    public async Task DeletePersonalCredentialAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.DeleteAsync($"/api/personal-credentials/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public void Dispose() => _http.Dispose();
 }
 

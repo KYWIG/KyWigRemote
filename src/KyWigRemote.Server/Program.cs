@@ -182,6 +182,21 @@ app.MapPost("/api/connections/{id:int}/personal-credential",
     return Results.NoContent();
 }).RequireAuthorization();
 
+// L'utilisateur consulte et supprime SES propres identifiants personnels (FR-16).
+app.MapGet("/api/personal-credentials",
+    (ClaimsPrincipal user, IPersonalCredentialRepository personal) =>
+{
+    string owner = user.Identity?.Name ?? string.Empty;
+    return Results.Ok(personal.ListByOwner(owner));
+}).RequireAuthorization();
+
+app.MapDelete("/api/personal-credentials/{id:int}",
+    (int id, ClaimsPrincipal user, IPersonalCredentialRepository personal) =>
+{
+    string owner = user.Identity?.Name ?? string.Empty;
+    return personal.Delete(owner, id) ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
+
 // --- Administration : réservée aux comptes administrateurs ---
 RouteGroupBuilder admin = app.MapGroup("/api/admin").RequireAuthorization("Admin");
 

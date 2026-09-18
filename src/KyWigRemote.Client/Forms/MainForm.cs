@@ -139,7 +139,8 @@ internal sealed class MainForm : Form
         };
         affichage.DropDownItems.Add(fullscreen);
 
-        var outils = new ToolStripMenuItem("&Outils") { Enabled = false };
+        var outils = new ToolStripMenuItem("&Outils");
+        outils.DropDownItems.Add(new ToolStripMenuItem("Mes &identifiants…", null, (_, _) => OpenMyCredentials()));
 
         var aide = new ToolStripMenuItem("&Aide");
         aide.DropDownItems.Add(new ToolStripMenuItem("À &propos…", null, (_, _) => ShowAbout()));
@@ -340,6 +341,12 @@ internal sealed class MainForm : Form
             WindowState = _previousWindowState;
             _isFullScreen = false;
         }
+    }
+
+    private void OpenMyCredentials()
+    {
+        using var dialog = new MyCredentialsDialog(_server);
+        dialog.ShowDialog(this);
     }
 
     private void ShowAbout()

@@ -1,3 +1,4 @@
+using KyWigRemote.Core.Remote;
 using KyWigRemote.Core.Security;
 
 namespace KyWigRemote.Core.Data;
@@ -14,6 +15,12 @@ public interface IPersonalCredentialRepository
 
     /// <summary>Retourne l'identifiant personnel de l'utilisateur pour la portée exacte, ou null.</summary>
     StoredPersonalCredential? Find(string owner, int? connectionId);
+
+    /// <summary>Liste les identifiants personnels d'un utilisateur (métadonnées, sans secret).</summary>
+    IReadOnlyList<PersonalCredentialSummary> ListByOwner(string owner);
+
+    /// <summary>Supprime un identifiant personnel s'il appartient à l'utilisateur ; retourne vrai si supprimé.</summary>
+    bool Delete(string owner, int id);
 }
 
 /// <summary>Identifiant personnel lu en base : métadonnées + secret chiffré (jamais de clair).</summary>
