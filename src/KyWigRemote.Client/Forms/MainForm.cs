@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using KyWigRemote.Shared.UI;
 using KyWigRemote.Core.Model;
 using KyWigRemote.Core.Remote;
+using KyWigRemote.Core.Security;
 using WeifenLuo.WinFormsUI.Docking;
 
 namespace KyWigRemote.Client.Forms;
@@ -20,6 +21,9 @@ internal sealed class MainForm : Form
 
     // Dialogue avec le serveur KyWigRemote (source des données partagées).
     private readonly ServerClient _server;
+
+    // Dernière arborescence chargée, pour résoudre le mode d'identifiants d'une connexion.
+    private IReadOnlyList<ConnectionFolder> _roots = Array.Empty<ConnectionFolder>();
 
     private readonly ToolStripStatusLabel _sessionCountLabel;
     private readonly ToolStripButton _connectButton;
@@ -94,6 +98,7 @@ internal sealed class MainForm : Form
         try
         {
             IReadOnlyList<ConnectionFolder> roots = await _server.GetTreeAsync();
+            _roots = roots;
             _connections.LoadTree(roots);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -233,7 +238,9 @@ internal sealed class MainForm : Form
     /// <summary>Ouvre (ou ré-active) un onglet de session pour la connexion demandée.</summary>
     private void OpenSession(RemoteConnection connection)
     {
-        var session = new SessionPanel(connection);
+        // Résout le mode d'identifiants effectif (héritage des dossiers) avant d'ouvrir l'onglet.
+        CredentialMode effectiveMode = CredentialResolver.ResolveEffectiveMode(_roots, connection);
+        var session = new SessionPanel(connection, effectiveMode);
         session.Show(_dockPanel, DockState.Document);
     }
 
