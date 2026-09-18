@@ -136,7 +136,18 @@ internal sealed class ConnectionsAdminForm : Form
             Warn("Sélectionnez d'abord un dossier pour y créer la connexion.");
             return;
         }
-        using var dialog = new NewConnectionDialog(target.Name);
+        IReadOnlyList<EnforcedCredentialSummary> enforced;
+        try
+        {
+            enforced = await _server.ListEnforcedCredentialsAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Warn("Impossible de charger les identifiants imposés.");
+            return;
+        }
+
+        using var dialog = new NewConnectionDialog(target.Name, enforced);
         if (dialog.ShowDialog(this) != DialogResult.OK || dialog.ConnectionName is null)
         {
             return;
@@ -145,7 +156,7 @@ internal sealed class ConnectionsAdminForm : Form
         {
             await _server.CreateConnectionAsync(new CreateConnectionRequest(
                 target.Id, dialog.ConnectionName, dialog.Protocol, dialog.Host, dialog.Port,
-                dialog.Domain, dialog.Description, dialog.Mode));
+                dialog.Domain, dialog.Description, dialog.Mode, dialog.EnforcedCredentialId));
             await LoadAsync();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

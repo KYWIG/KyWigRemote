@@ -50,7 +50,7 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
         using (SqliteCommand command = connection.CreateCommand())
         {
             command.CommandText =
-                "SELECT id, folder_id, name, protocol, host, port, domain, description, credential_mode " +
+                "SELECT id, folder_id, name, protocol, host, port, domain, description, credential_mode, enforced_credential_id " +
                 "FROM connections ORDER BY sort_order, name;";
             using SqliteDataReader reader = command.ExecuteReader();
             while (reader.Read())
@@ -65,6 +65,7 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
                     Domain = reader.IsDBNull(6) ? null : reader.GetString(6),
                     Description = reader.IsDBNull(7) ? null : reader.GetString(7),
                     CredentialMode = ParseMode(reader.GetString(8)),
+                    EnforcedCredentialId = reader.IsDBNull(9) ? null : reader.GetInt32(9),
                 };
 
                 // Une connexion sans dossier (folder_id NULL) est ignorée de l'arbre
@@ -141,8 +142,8 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
         using SqliteCommand command = db.CreateCommand();
         command.CommandText =
             "INSERT INTO connections " +
-            "(folder_id, name, protocol, host, port, domain, description, credential_mode, created_at, updated_at) " +
-            "VALUES ($folder, $name, $proto, $host, $port, $domain, $descr, $mode, $now, $now); " +
+            "(folder_id, name, protocol, host, port, domain, description, credential_mode, enforced_credential_id, created_at, updated_at) " +
+            "VALUES ($folder, $name, $proto, $host, $port, $domain, $descr, $mode, $enforced, $now, $now); " +
             "SELECT last_insert_rowid();";
         BindConnection(command, connection);
         command.Parameters.AddWithValue("$folder", folderId);
@@ -159,7 +160,8 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
         using SqliteCommand command = db.CreateCommand();
         command.CommandText =
             "UPDATE connections SET name = $name, protocol = $proto, host = $host, port = $port, " +
-            "domain = $domain, description = $descr, credential_mode = $mode, updated_at = $now WHERE id = $id;";
+            "domain = $domain, description = $descr, credential_mode = $mode, " +
+            "enforced_credential_id = $enforced, updated_at = $now WHERE id = $id;";
         BindConnection(command, connection);
         command.Parameters.AddWithValue("$now", Now());
         command.Parameters.AddWithValue("$id", connection.Id);
@@ -184,6 +186,36 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
         command.Parameters.AddWithValue("$domain", (object?)connection.Domain ?? DBNull.Value);
         command.Parameters.AddWithValue("$descr", (object?)connection.Description ?? DBNull.Value);
         command.Parameters.AddWithValue("$mode", ToDbMode(connection.CredentialMode));
+        command.Parameters.AddWithValue("$enforced", (object?)connection.EnforcedCredentialId ?? DBNull.Value);
+    }
+
+    public RemoteConnection? GetConnection(int id)
+    {
+        using SqliteConnection connection = _database.OpenConnection();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, name, protocol, host, port, domain, description, credential_mode, enforced_credential_id " +
+            "FROM connections WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+
+        using SqliteDataReader reader = command.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+
+        return new RemoteConnection
+        {
+            Id = reader.GetInt32(0),
+            Name = reader.GetString(1),
+            Protocol = ParseProtocol(reader.GetString(2)),
+            Host = reader.GetString(3),
+            Port = reader.GetInt32(4),
+            Domain = reader.IsDBNull(5) ? null : reader.GetString(5),
+            Description = reader.IsDBNull(6) ? null : reader.GetString(6),
+            CredentialMode = ParseMode(reader.GetString(7)),
+            EnforcedCredentialId = reader.IsDBNull(8) ? null : reader.GetInt32(8),
+        };
     }
 
     private static string Now() => DateTimeOffset.UtcNow.ToString("O");

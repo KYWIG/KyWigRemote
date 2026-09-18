@@ -21,6 +21,9 @@ public interface IConnectionRepository
     /// <summary>Supprime un dossier ; ses sous-dossiers sont supprimés en cascade.</summary>
     void DeleteFolder(int id);
 
+    /// <summary>Retourne une connexion par son identifiant, ou null si elle n'existe pas.</summary>
+    RemoteConnection? GetConnection(int id);
+
     /// <summary>Ajoute une connexion dans le dossier indiqué et retourne son identifiant.</summary>
     int AddConnection(RemoteConnection connection, int folderId);
 

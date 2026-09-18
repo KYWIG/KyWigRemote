@@ -12,6 +12,9 @@ public interface ICredentialRepository
     /// <summary>Enregistre un identifiant imposé avec son secret déjà chiffré ; retourne son identifiant.</summary>
     int SaveEnforced(EnforcedCredential credential, EncryptedSecret secret);
 
+    /// <summary>Retourne les métadonnées d'un identifiant imposé (sans secret), ou null s'il n'existe pas.</summary>
+    EnforcedCredential? GetEnforced(int id);
+
     /// <summary>Retourne le secret chiffré d'un identifiant imposé, ou null s'il n'existe pas.</summary>
     EncryptedSecret? GetEnforcedSecret(int id);
 

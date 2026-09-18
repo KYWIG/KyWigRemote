@@ -1,11 +1,12 @@
 using System.Drawing;
 using System.Windows.Forms;
 using KyWigRemote.Core.Model;
+using KyWigRemote.Core.Remote;
 using KyWigRemote.Shared.UI;
 
 namespace KyWigRemote.Admin.Forms;
 
-/// <summary>Boîte de saisie d'une nouvelle connexion.</summary>
+/// <summary>Boîte de saisie d'une nouvelle connexion, avec choix éventuel d'un identifiant imposé.</summary>
 internal sealed class NewConnectionDialog : Form
 {
     private readonly TextBox _nameBox;
@@ -15,7 +16,9 @@ internal sealed class NewConnectionDialog : Form
     private readonly TextBox _domainBox;
     private readonly TextBox _descriptionBox;
     private readonly ComboBox _modeBox;
+    private readonly ComboBox _enforcedBox;
     private readonly Label _statusLabel;
+    private readonly IReadOnlyList<EnforcedCredentialSummary> _enforced;
 
     public string? ConnectionName { get; private set; }
     public RemoteProtocol Protocol { get; private set; } = RemoteProtocol.Rdp;
@@ -24,73 +27,93 @@ internal sealed class NewConnectionDialog : Form
     public string? Domain { get; private set; }
     public string? Description { get; private set; }
     public CredentialMode Mode { get; private set; } = CredentialMode.Inherited;
+    public int? EnforcedCredentialId { get; private set; }
 
-    public NewConnectionDialog(string folderLabel)
+    public NewConnectionDialog(string folderLabel, IReadOnlyList<EnforcedCredentialSummary> enforcedCredentials)
     {
-        Text = "Nouvelle connexion";
+        _enforced = enforcedCredentials;
+
+        Text = $"Nouvelle connexion — {folderLabel}";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MinimizeBox = false;
         MaximizeBox = false;
-        ClientSize = new Size(420, 360);
+        ClientSize = new Size(420, 452);
         BackColor = DarkPalette.Background;
         ForeColor = DarkPalette.Text;
         Font = new Font("Segoe UI", 9f);
 
-        var folder = new Label { Text = $"Dossier : {folderLabel}", ForeColor = DarkPalette.TextMuted, AutoSize = true, Location = new Point(16, 14) };
+        _nameBox = Field("Nom :", 16);
+        _hostBox = Field("Hôte :", 64);
 
-        _nameBox = Field("Nom :", 40);
-        _protocolBox = Combo("Protocole :", 94, ProtocolChoices.Labels);
+        Controls.Add(Caption("Protocole :", 16, 112));
+        _protocolBox = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            FlatStyle = FlatStyle.Flat, Location = new Point(16, 134), Width = 180,
+        };
+        _protocolBox.Items.AddRange(ProtocolChoices.Labels);
         _protocolBox.SelectedIndex = 0;
         _protocolBox.SelectedIndexChanged += (_, _) => ApplyDefaultPort();
+        Controls.Add(_protocolBox);
 
-        _hostBox = Field("Hôte :", 148);
+        Controls.Add(Caption("Port :", 220, 112));
         _portBox = new TextBox
         {
             BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
-            Location = new Point(300, 170), Width = 104, Text = "3389",
+            Location = new Point(220, 134), Width = 184, Text = "3389",
         };
-        Controls.Add(new Label { Text = "Port :", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(300, 148) });
+        Controls.Add(_portBox);
 
-        _domainBox = Field("Domaine (facultatif) :", 202);
-        _descriptionBox = Field("Description (facultative) :", 256);
+        _domainBox = Field("Domaine (facultatif) :", 168);
+        _descriptionBox = Field("Description (facultative) :", 216);
 
-        _modeBox = Combo("Mode d'identifiants :", 300, CredentialModeChoices.Labels);
+        Controls.Add(Caption("Mode d'identifiants :", 16, 264));
+        _modeBox = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            FlatStyle = FlatStyle.Flat, Location = new Point(16, 286), Width = 388,
+        };
+        _modeBox.Items.AddRange(CredentialModeChoices.Labels);
         _modeBox.SelectedIndex = CredentialModeChoices.IndexOf(CredentialMode.Inherited);
-        _modeBox.Width = 200;
+        Controls.Add(_modeBox);
 
-        _statusLabel = new Label { Text = string.Empty, ForeColor = DarkPalette.Error, AutoSize = false, Location = new Point(16, 326), Size = new Size(388, 18) };
+        Controls.Add(Caption("Identifiant imposé (si mode « Imposé ») :", 16, 320));
+        _enforcedBox = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            FlatStyle = FlatStyle.Flat, Location = new Point(16, 342), Width = 388,
+        };
+        _enforcedBox.Items.Add("(aucun)");
+        foreach (EnforcedCredentialSummary c in _enforced)
+        {
+            _enforcedBox.Items.Add($"{c.Label} ({c.Username})");
+        }
+        _enforcedBox.SelectedIndex = 0;
+        Controls.Add(_enforcedBox);
 
-        var ok = new Button { Text = "Créer", Location = new Point(228, 322), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        _statusLabel = new Label { Text = string.Empty, ForeColor = DarkPalette.Error, AutoSize = false, Location = new Point(16, 384), Size = new Size(388, 18) };
+
+        var ok = new Button { Text = "Créer", Location = new Point(228, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
         ok.Click += (_, _) => Submit();
-        var cancel = new Button { Text = "Annuler", Location = new Point(320, 322), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text, DialogResult = DialogResult.Cancel };
+        var cancel = new Button { Text = "Annuler", Location = new Point(320, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text, DialogResult = DialogResult.Cancel };
 
         AcceptButton = ok;
         CancelButton = cancel;
-        Controls.AddRange(new Control[] { folder, _statusLabel, ok, cancel });
+        Controls.AddRange(new Control[] { _statusLabel, ok, cancel });
     }
+
+    private static Label Caption(string text, int x, int y) =>
+        new() { Text = text, ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(x, y) };
 
     private TextBox Field(string label, int top)
     {
-        Controls.Add(new Label { Text = label, ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, top) });
+        Controls.Add(Caption(label, 16, top));
         var box = new TextBox
         {
             BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
             Location = new Point(16, top + 22), Width = 388,
         };
-        Controls.Add(box);
-        return box;
-    }
-
-    private ComboBox Combo(string label, int top, object[] items)
-    {
-        Controls.Add(new Label { Text = label, ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, top) });
-        var box = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
-            FlatStyle = FlatStyle.Flat, Location = new Point(16, top + 22), Width = 264,
-        };
-        box.Items.AddRange(items);
         Controls.Add(box);
         return box;
     }
@@ -114,13 +137,22 @@ internal sealed class NewConnectionDialog : Form
             return;
         }
 
+        Mode = CredentialModeChoices.FromIndex(_modeBox.SelectedIndex);
+        // L'index 0 du combo est « (aucun) » ; au-delà, il pointe dans la liste des identifiants.
+        EnforcedCredentialId = _enforcedBox.SelectedIndex > 0 ? _enforced[_enforcedBox.SelectedIndex - 1].Id : null;
+
+        if (Mode == CredentialMode.Enforced && EnforcedCredentialId is null)
+        {
+            _statusLabel.Text = "Le mode « Imposé » exige de choisir un identifiant imposé.";
+            return;
+        }
+
         ConnectionName = _nameBox.Text.Trim();
         Protocol = ProtocolChoices.FromIndex(_protocolBox.SelectedIndex);
         Host = _hostBox.Text.Trim();
         Port = port;
         Domain = string.IsNullOrWhiteSpace(_domainBox.Text) ? null : _domainBox.Text.Trim();
         Description = string.IsNullOrWhiteSpace(_descriptionBox.Text) ? null : _descriptionBox.Text.Trim();
-        Mode = CredentialModeChoices.FromIndex(_modeBox.SelectedIndex);
         DialogResult = DialogResult.OK;
         Close();
     }

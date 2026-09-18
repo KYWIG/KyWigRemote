@@ -29,4 +29,9 @@ public sealed class RemoteConnection
 
     /// <summary>Mode d'identifiants de la connexion.</summary>
     public CredentialMode CredentialMode { get; set; } = CredentialMode.Inherited;
+
+    /// <summary>
+    /// Identifiant imposé rattaché (utilisé quand le mode effectif est IMPOSÉ) ; null sinon.
+    /// </summary>
+    public int? EnforcedCredentialId { get; set; }
 }

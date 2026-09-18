@@ -35,7 +35,14 @@ public sealed record CreateConnectionRequest(
     int Port,
     string? Domain,
     string? Description,
-    CredentialMode CredentialMode);
+    CredentialMode CredentialMode,
+    int? EnforcedCredentialId);
+
+/// <summary>
+/// Identifiant révélé pour ouvrir une session (mode imposé). Contient le secret en clair :
+/// à n'utiliser qu'au moment d'ouvrir la session, puis à lâcher.
+/// </summary>
+public sealed record RevealedCredential(string Username, string? Domain, string Secret);
 
 /// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
 public sealed record CreatedId(int Id);

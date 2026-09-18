@@ -216,6 +216,7 @@ admin.MapPost("/connections", (CreateConnectionRequest request, IConnectionRepos
         Domain = request.Domain,
         Description = request.Description,
         CredentialMode = request.CredentialMode,
+        EnforcedCredentialId = request.EnforcedCredentialId,
     }, request.FolderId);
     return Results.Created($"/api/admin/connections/{id}", new CreatedId(id));
 });
@@ -260,6 +261,31 @@ admin.MapPost("/enforced-credentials", (CreateEnforcedCredentialRequest request,
         request.Secret);
     return Results.Created($"/api/admin/enforced-credentials/{id}",
         new EnforcedCredentialSummary(id, request.Label, request.Username, request.Domain, request.AllowedGroups));
+});
+
+// Révélation du secret imposé rattaché à une connexion, pour ouvrir la session.
+// INTERIM : réservé aux administrateurs (groupe admin). Le contrôle par groupes AD
+// pour les techniciens viendra avec E3 (authentification Active Directory).
+admin.MapGet("/connections/{id:int}/enforced-secret",
+    (int id, IConnectionRepository connections, ICredentialRepository credentials, CredentialService credentialService) =>
+{
+    RemoteConnection? connection = connections.GetConnection(id);
+    if (connection is null)
+    {
+        return Results.NotFound(new { error = "Connexion introuvable." });
+    }
+    if (connection.EnforcedCredentialId is not int credentialId)
+    {
+        return Results.BadRequest(new { error = "Cette connexion n'a pas d'identifiant imposé rattaché." });
+    }
+
+    EnforcedCredential? meta = credentials.GetEnforced(credentialId);
+    string? secret = credentialService.RevealEnforcedSecret(credentialId);
+    if (meta is null || secret is null)
+    {
+        return Results.NotFound(new { error = "Identifiant imposé introuvable." });
+    }
+    return Results.Ok(new RevealedCredential(meta.Username, meta.Domain, secret));
 });
 
 app.Run();

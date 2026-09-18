@@ -39,6 +39,29 @@ public sealed class SqliteCredentialRepository : ICredentialRepository
         return id;
     }
 
+    public EnforcedCredential? GetEnforced(int id)
+    {
+        using SqliteConnection connection = _database.OpenConnection();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, label, username, domain, allowed_groups FROM enforced_credentials WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+
+        using SqliteDataReader reader = command.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+        return new EnforcedCredential
+        {
+            Id = reader.GetInt32(0),
+            Label = reader.GetString(1),
+            Username = reader.GetString(2),
+            Domain = reader.IsDBNull(3) ? null : reader.GetString(3),
+            AllowedGroups = reader.IsDBNull(4) ? null : reader.GetString(4),
+        };
+    }
+
     public EncryptedSecret? GetEnforcedSecret(int id)
     {
         using SqliteConnection connection = _database.OpenConnection();
