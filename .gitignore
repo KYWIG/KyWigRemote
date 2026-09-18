@@ -1,0 +1,37 @@
+# === Sorties de compilation .NET ===
+bin/
+obj/
+dist/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.dll
+*.exe
+*.pdb
+
+# === Fichiers utilisateur / IDE ===
+*.user
+*.suo
+.vs/
+.idea/
+*.userprefs
+
+# === Bases de données de développement (jamais en dépôt) ===
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# === Journaux ===
+logs/
+*.log
+
+# === Secrets et configuration locale (ne jamais versionner) ===
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.key
+
+# === Divers ===
+apercu-*.png
