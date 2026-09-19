@@ -73,12 +73,69 @@ public sealed class ServerConnectDialog : Form
         };
         cancelButton.FlatAppearance.BorderColor = DarkPalette.Border;
 
+        var windowsButton = new Button
+        {
+            Text = "Connexion Windows (AD)",
+            Location = new Point(16, 208),
+            Width = 170,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = DarkPalette.InputBackground,
+            ForeColor = DarkPalette.Text,
+        };
+        windowsButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        windowsButton.Click += async (_, _) => await TryWindowsConnectAsync();
+
         AcceptButton = _connectButton;
         CancelButton = cancelButton;
 
         Controls.Add(_statusLabel);
+        Controls.Add(windowsButton);
         Controls.Add(_connectButton);
         Controls.Add(cancelButton);
+    }
+
+    /// <summary>Connexion par le compte Windows/AD (Negotiate) : ni utilisateur ni mot de passe à saisir.</summary>
+    private async Task TryWindowsConnectAsync()
+    {
+        string url = _urlBox.Text.Trim();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed)
+            || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
+        {
+            SetStatus("Adresse invalide. Attendu : http(s)://serveur:port", DarkPalette.Error);
+            return;
+        }
+
+        SetBusy(true, "Connexion Windows au serveur…");
+        var client = new ServerClient(url);
+        try
+        {
+            if (!await client.CheckHealthAsync())
+            {
+                client.Dispose();
+                SetBusy(false, string.Empty);
+                SetStatus("Serveur injoignable. Vérifiez l'adresse, qu'il est démarré, et le VPN.", DarkPalette.Error);
+                return;
+            }
+
+            LoginResult? session = await client.WindowsLoginAsync();
+            if (session is null)
+            {
+                client.Dispose();
+                SetBusy(false, string.Empty);
+                SetStatus("Accès refusé : votre compte AD n'est pas dans le groupe autorisé.", DarkPalette.Error);
+                return;
+            }
+
+            ConnectedClient = client;
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            client.Dispose();
+            SetBusy(false, string.Empty);
+            SetStatus("Échec de la connexion Windows. Le serveur accepte-t-il l'authentification AD ?", DarkPalette.Error);
+        }
     }
 
     /// <summary>Crée un couple libellé + champ à l'ordonnée indiquée et retourne le champ.</summary>

@@ -35,7 +35,9 @@ public sealed class ServerClient : IDisposable
         }
 
         BaseAddress = new Uri(baseUrl, UriKind.Absolute);
-        _http = new HttpClient
+        // UseDefaultCredentials : permet l'authentification Windows/AD (Negotiate) en
+        // envoyant automatiquement l'identité de la session, sans mot de passe applicatif.
+        _http = new HttpClient(new HttpClientHandler { UseDefaultCredentials = true })
         {
             BaseAddress = BaseAddress,
             Timeout = TimeSpan.FromSeconds(10),
@@ -71,6 +73,29 @@ public sealed class ServerClient : IDisposable
             "/api/auth/login", new { username, password }, JsonOptions, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+        response.EnsureSuccessStatusCode();
+
+        LoginResult? result = await response.Content.ReadFromJsonAsync<LoginResult>(JsonOptions, cancellationToken);
+        if (result is not null)
+        {
+            Session = result;
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.Token);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Authentifie l'utilisateur via son compte Windows/AD (Negotiate) et arme le jeton.
+    /// Retourne null si le compte n'est pas autorisé (403, hors du groupe requis).
+    /// Les erreurs réseau se propagent.
+    /// </summary>
+    public async Task<LoginResult?> WindowsLoginAsync(CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsync("/api/auth/windows-login", content: null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Forbidden)
         {
             return null;
         }
