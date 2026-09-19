@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using KyWigRemote.Core.Data;
+using KyWigRemote.Core.Directory;
 using KyWigRemote.Core.Model;
 using KyWigRemote.Core.Remote;
 using KyWigRemote.Core.Security;
@@ -68,6 +69,12 @@ builder.Services.AddSingleton(passwordHasher);
 builder.Services.AddSingleton(localAuthenticator);
 builder.Services.AddSingleton(tokenService);
 builder.Services.AddSingleton(credentialService);
+
+// Vérificateur de groupes AD (avec cache) si l'AD est activé ; sinon « tout refuser ».
+IGroupChecker groupChecker = options.Authentication.IsEnabled("ActiveDirectory")
+    ? new CachingGroupChecker(new AdGroupChecker(options.Authentication.ActiveDirectory.Domain))
+    : new DenyAllGroupChecker();
+builder.Services.AddSingleton(groupChecker);
 
 // Authentification par jeton JWT.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -333,9 +340,11 @@ admin.MapPost("/enforced-credentials",
 // Révélation du secret imposé rattaché à une connexion, pour ouvrir la session.
 // INTERIM : réservé aux administrateurs (groupe admin). Le contrôle par groupes AD
 // pour les techniciens viendra avec E3 (authentification Active Directory).
-admin.MapGet("/connections/{id:int}/enforced-secret",
-    (int id, ClaimsPrincipal user, IConnectionRepository connections,
-     ICredentialRepository credentials, CredentialService credentialService, IAuditRepository audit) =>
+// Révélation du secret imposé pour ouvrir une session. Autorisée aux administrateurs OU
+// aux membres d'un groupe AD autorisé sur l'identifiant (FR-15). Accès et refus sont tracés.
+app.MapGet("/api/connections/{id:int}/enforced-secret",
+    (int id, ClaimsPrincipal user, IConnectionRepository connections, ICredentialRepository credentials,
+     CredentialService credentialService, IGroupChecker groupChecker, IAuditRepository audit) =>
 {
     RemoteConnection? connection = connections.GetConnection(id);
     if (connection is null)
@@ -346,19 +355,44 @@ admin.MapGet("/connections/{id:int}/enforced-secret",
     {
         return Results.BadRequest(new { error = "Cette connexion n'a pas d'identifiant imposé rattaché." });
     }
-
     EnforcedCredential? meta = credentials.GetEnforced(credentialId);
-    string? secret = credentialService.RevealEnforcedSecret(credentialId);
-    if (meta is null || secret is null)
+    if (meta is null)
     {
         return Results.NotFound(new { error = "Identifiant imposé introuvable." });
     }
 
-    // Accès à un secret à privilèges : tracé (sans le secret lui-même).
-    WriteAudit(audit, user.Identity?.Name, "REVEAL_ENFORCED", "CREDENTIAL", credentialId,
-        result: "OK", details: $"connexion #{id}");
+    string caller = user.Identity?.Name ?? string.Empty;
+    bool authorized;
+    try
+    {
+        authorized = user.IsInRole(TokenService.AdminRole)
+            || EnforcedCredentialAuthorizer.IsAllowedByGroups(caller, meta.AllowedGroups, groupChecker);
+    }
+    catch (Exception ex) when (ex is not OperationCanceledException)
+    {
+        // Annuaire injoignable : on refuse par sécurité et on trace, sans exposer le détail.
+        WriteAudit(audit, caller, "REVEAL_ENFORCED", "CREDENTIAL", credentialId, result: "ERROR",
+            details: "vérification des groupes impossible");
+        return Results.Problem("Vérification des droits impossible (annuaire injoignable).",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    if (!authorized)
+    {
+        WriteAudit(audit, caller, "REVEAL_ENFORCED", "CREDENTIAL", credentialId, result: "DENIED",
+            details: $"connexion #{id}");
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    string? secret = credentialService.RevealEnforcedSecret(credentialId);
+    if (secret is null)
+    {
+        return Results.NotFound(new { error = "Identifiant imposé introuvable." });
+    }
+
+    WriteAudit(audit, caller, "REVEAL_ENFORCED", "CREDENTIAL", credentialId, result: "OK", details: $"connexion #{id}");
     return Results.Ok(new RevealedCredential(meta.Username, meta.Domain, secret));
-});
+}).RequireAuthorization();
 
 // Consultation du journal d'audit (filtres facultatifs : utilisateur, résultat).
 admin.MapGet("/audit", (string? user, string? result, int? limit, IAuditRepository audit) =>
