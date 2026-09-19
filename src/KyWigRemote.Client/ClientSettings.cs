@@ -13,6 +13,12 @@ internal sealed class ClientSettings
     /// <summary>Dernière adresse de serveur saisie avec succès.</summary>
     public string? LastServerUrl { get; set; }
 
+    /// <summary>
+    /// Chemin explicite vers putty.exe (poste où PuTTY n'est pas installé à un emplacement
+    /// standard). Vide par défaut : la localisation automatique s'en charge alors.
+    /// </summary>
+    public string? PuttyPath { get; set; }
+
     private static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "KyWigRemote", "client.json");
