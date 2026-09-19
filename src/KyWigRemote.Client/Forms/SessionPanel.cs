@@ -12,20 +12,21 @@ namespace KyWigRemote.Client.Forms;
 /// Il héberge le contenu d'une session pour une connexion donnée.
 ///
 /// SSH (E6) est intégré : PuTTY est lancé puis sa fenêtre est reparentée dans cet onglet.
-/// RDP (E5) reste à implémenter (contrôle ActiveX AxMsRdpClient9) et affiche donc un état
-/// d'attente explicite plutôt qu'une fausse session.
+/// RDP (E5) est intégré via le contrôle ActiveX AxMsRdpClient9 hébergé dans l'onglet.
 /// </summary>
 internal sealed class SessionPanel : DockContent
 {
     private readonly RemoteConnection _connection;
-    private readonly CredentialMode _effectiveMode;
     private readonly string? _resolvedUsername;
     private PuttySshSession? _ssh;
+    private RdpSessionControl? _rdp;
 
+    // effectiveMode est conservé dans la signature pour l'appelant ; l'ouverture réelle
+    // n'en dépend pas encore (l'authentification est saisie dans la session elle-même).
     public SessionPanel(RemoteConnection connection, CredentialMode effectiveMode, string? resolvedUsername)
     {
+        _ = effectiveMode;
         _connection = connection;
-        _effectiveMode = effectiveMode;
         _resolvedUsername = resolvedUsername;
 
         Text = connection.Name;
@@ -37,8 +38,8 @@ internal sealed class SessionPanel : DockContent
     {
         base.OnHandleCreated(e);
 
-        // Le reparentage exige un handle : on ne démarre la session qu'ici, et une seule fois.
-        if (_ssh is not null || Controls.Count > 0)
+        // Le reparentage / l'ActiveX exigent un handle : on ne démarre qu'ici, et une seule fois.
+        if (_ssh is not null || _rdp is not null || Controls.Count > 0)
         {
             return;
         }
@@ -49,7 +50,25 @@ internal sealed class SessionPanel : DockContent
         }
         else
         {
-            ShowPending();
+            StartRdpSession();
+        }
+    }
+
+    private void StartRdpSession()
+    {
+        try
+        {
+            _rdp = new RdpSessionControl(_connection, _resolvedUsername) { Dock = DockStyle.Fill };
+            _rdp.SessionEnded += (_, _) => Close();
+            Controls.Add(_rdp);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            _rdp?.Dispose();
+            _rdp = null;
+            ShowMessage(
+                "L'ouverture de la session RDP a échoué.\r\n\r\n" +
+                "Le contrôle Bureau à distance n'a pas pu être initialisé sur ce poste.");
         }
     }
 
@@ -81,20 +100,6 @@ internal sealed class SessionPanel : DockContent
         }
     }
 
-    private void ShowPending()
-    {
-        string identity = _resolvedUsername is null
-            ? string.Empty
-            : $"Identifiant résolu : {_resolvedUsername}.\r\n";
-
-        ShowMessage(
-            $"Session RDP vers « {_connection.Name} » ({_connection.Host}:{_connection.Port})\r\n\r\n" +
-            $"Mode d'identifiants résolu : {DescribeMode(_effectiveMode)}.\r\n" +
-            identity + "\r\n" +
-            "L'ouverture réelle de la session RDP est à implémenter — story E5.\r\n" +
-            "Cet onglet est le conteneur qui accueillera le contrôle de session.");
-    }
-
     private void ShowMessage(string text)
     {
         var label = new Label
@@ -110,18 +115,11 @@ internal sealed class SessionPanel : DockContent
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
-        // Fermeture de l'onglet : on termine PuTTY pour ne laisser aucun processus résiduel (E6.3).
+        // Fermeture de l'onglet : on termine PuTTY (E6.3) et on déconnecte proprement le RDP.
         _ssh?.Dispose();
         _ssh = null;
+        _rdp?.Dispose();
+        _rdp = null;
         base.OnFormClosed(e);
     }
-
-    private static string DescribeMode(CredentialMode mode) => mode switch
-    {
-        CredentialMode.Personal => "Personnel",
-        CredentialMode.Enforced => "Imposé",
-        CredentialMode.Prompt => "À la demande",
-        CredentialMode.Inherited => "Hérité",
-        _ => mode.ToString(),
-    };
 }

@@ -10,6 +10,22 @@
     <PackageReference Include="DockPanelSuite.ThemeVS2015" Version="3.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Interop ActiveX du contrôle RDP (mstsc), généré par AxImp depuis mstscax.dll de Windows.
+      Committé pour rendre la génération reproductible sans dépendre de l'outillage Visual Studio
+      (voir ADR-002). EmbedInteropTypes=false : l'interop ActiveX ne s'incorpore pas.
+    -->
+    <Reference Include="MSTSCLib">
+      <HintPath>lib\MSTSCLib.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="AxMSTSCLib">
+      <HintPath>lib\AxMSTSCLib.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
