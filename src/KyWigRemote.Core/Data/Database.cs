@@ -107,7 +107,8 @@ public sealed class Database
         string? directory = Path.GetDirectoryName(Path.GetFullPath(FilePath));
         if (!string.IsNullOrEmpty(directory))
         {
-            Directory.CreateDirectory(directory);
+            // Pleinement qualifié : le namespace KyWigRemote.Core.Directory masque System.IO.Directory.
+            System.IO.Directory.CreateDirectory(directory);
         }
     }
 
