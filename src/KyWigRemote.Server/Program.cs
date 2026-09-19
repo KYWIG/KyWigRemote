@@ -1,7 +1,10 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using KyWigRemote.Core.Data;
 using KyWigRemote.Core.Directory;
@@ -46,6 +49,7 @@ if (database.WasCreated)
 var localAccounts = new SqliteLocalAccountRepository(database);
 var settingsStore = new SqliteSettingsStore(database);
 var auditRepository = new SqliteAuditRepository(database);
+var userRepository = new SqliteUserRepository(database);
 var passwordHasher = new PasswordHasher();
 var localAuthenticator = new LocalAuthenticator(localAccounts, passwordHasher);
 
@@ -65,6 +69,7 @@ builder.Services.AddSingleton<ILocalAccountRepository>(localAccounts);
 builder.Services.AddSingleton<ICredentialRepository>(credentialRepository);
 builder.Services.AddSingleton<IPersonalCredentialRepository>(personalRepository);
 builder.Services.AddSingleton<IAuditRepository>(auditRepository);
+builder.Services.AddSingleton<IUserRepository>(userRepository);
 builder.Services.AddSingleton(passwordHasher);
 builder.Services.AddSingleton(localAuthenticator);
 builder.Services.AddSingleton(tokenService);
@@ -76,8 +81,9 @@ IGroupChecker groupChecker = options.Authentication.IsEnabled("ActiveDirectory")
     : new DenyAllGroupChecker();
 builder.Services.AddSingleton(groupChecker);
 
-// Authentification par jeton JWT.
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// Authentification par jeton JWT (schéma par défaut pour toute l'API).
+AuthenticationBuilder authentication = builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(jwt =>
     {
         jwt.TokenValidationParameters = new TokenValidationParameters
@@ -92,6 +98,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.FromSeconds(30),
         };
     });
+
+// Authentification Windows/AD (Negotiate), uniquement pour l'endpoint de login AD.
+if (options.Authentication.IsEnabled("ActiveDirectory"))
+{
+    authentication.AddNegotiate();
+}
+
 builder.Services.AddAuthorization(auth =>
 {
     // Politique « Admin » : réservée aux jetons portant le rôle administrateur.
@@ -164,6 +177,56 @@ app.MapPost("/api/auth/login", (LoginRequest request, LocalAuthenticator local, 
         user.Provider,
     });
 });
+
+// Connexion Active Directory (Windows/Negotiate) : l'utilisateur s'authentifie avec son compte
+// AD, l'appartenance au groupe utilisateurs est requise, l'admin découle du groupe admin
+// (E3.3/E3.4). L'utilisateur est enregistré (E3.5) et un jeton est renvoyé comme pour le login local.
+if (options.Authentication.IsEnabled("ActiveDirectory"))
+{
+    AuthorizationPolicy negotiatePolicy = new AuthorizationPolicyBuilder(NegotiateDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
+
+    app.MapPost("/api/auth/windows-login",
+        (ClaimsPrincipal windows, KyWigRemoteOptions cfg, IGroupChecker groups,
+         IUserRepository users, TokenService tokens, IAuditRepository audit) =>
+    {
+        string fullName = windows.Identity?.Name ?? string.Empty; // « DOMAINE\utilisateur »
+        int slash = fullName.IndexOf('\\');
+        string sam = slash >= 0 ? fullName[(slash + 1)..] : fullName;
+        string? domain = slash >= 0 ? fullName[..slash] : null;
+        string sid = windows.FindFirst(ClaimTypes.PrimarySid)?.Value ?? string.Empty;
+
+        ActiveDirectoryOptions ad = cfg.Authentication.ActiveDirectory;
+        bool inUserGroup;
+        bool isAdmin;
+        try
+        {
+            inUserGroup = groups.IsMemberOf(sam, ad.UserGroup);
+            isAdmin = inUserGroup && groups.IsMemberOf(sam, ad.AdminGroup);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            WriteAudit(audit, sam, "LOGIN", result: "ERROR", details: "vérification des groupes impossible");
+            return Results.Problem("Vérification des droits impossible (annuaire injoignable).",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        if (!inUserGroup)
+        {
+            WriteAudit(audit, sam, "LOGIN", result: "DENIED", details: $"hors du groupe {ad.UserGroup}");
+            return Results.StatusCode(StatusCodes.Status403Forbidden);
+        }
+
+        string? display = AdIdentity.TryResolveDisplayName(sam);
+        users.Upsert(new WindowsUser(sid, sam, display, domain)); // E3.5
+        WriteAudit(audit, sam, "LOGIN", result: "OK");
+
+        var identity = new AuthenticatedUser(sam, display, isAdmin, "ActiveDirectory");
+        (string token, DateTimeOffset expiresAt) = tokens.Issue(identity);
+        return Results.Ok(new { token, expiresAt, username = sam, displayName = display, isAdmin, provider = "ActiveDirectory" });
+    }).RequireAuthorization(negotiatePolicy);
+}
 
 // Arborescence partagée : désormais PROTÉGÉE (jeton requis).
 app.MapGet("/api/tree", (IConnectionRepository connections) => Results.Ok(connections.GetTree()))
