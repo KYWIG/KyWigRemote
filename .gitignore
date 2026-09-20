@@ -10,6 +10,11 @@ x86/
 *.exe
 *.pdb
 
+# Exception : interop ActiveX RDP généré par AxImp, committé pour un build reproductible
+# sans l'outillage Visual Studio (voir KyWigRemote.Client/KyWigRemote.Client.csproj).
+!src/KyWigRemote.Client/lib/
+!src/KyWigRemote.Client/lib/*.dll
+
 # === Fichiers utilisateur / IDE ===
 *.user
 *.suo
