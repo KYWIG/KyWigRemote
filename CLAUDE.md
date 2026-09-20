@@ -28,6 +28,12 @@ Lis-les avant toute implémentation. En cas de contradiction avec ce fichier, il
 - `docs/03-architecture.md` — pile technique, ADR, schéma SQL, schéma cryptographique
 - `docs/04-ui-spec.md` — disposition, palette, comportements, messages
 - `docs/05-epics-stories.md` — epics E1 à E10 et stories, avec critères d'acceptation
+- `docs/06-evolutions.md` — **décisions post-pivot (client/serveur, GPL, multi-auth, crypto).
+  Fait autorité sur les points qu'il traite, y compris contre ce fichier et les ADR.**
+
+> ⚠️ Le projet a pivoté vers une architecture **client/serveur**, sous **GPL-2.0**, avec chiffrement
+> **AES-256-GCM à clé maître serveur**. Plusieurs passages ci-dessous (interdiction de copie
+> mRemoteNG, « zéro serveur », enveloppe DPAPI/RSA) sont amendés par `docs/06-evolutions.md`.
 
 ## Pile technique
 
