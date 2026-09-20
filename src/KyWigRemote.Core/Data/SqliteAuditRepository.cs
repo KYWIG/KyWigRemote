@@ -90,4 +90,13 @@ public sealed class SqliteAuditRepository : IAuditRepository
         }
         return events;
     }
+
+    public int PurgeOlderThan(DateTimeOffset cutoff)
+    {
+        using SqliteConnection connection = _database.OpenConnection();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM audit_log WHERE occurred_at < $cutoff;";
+        command.Parameters.AddWithValue("$cutoff", cutoff.ToString("O"));
+        return command.ExecuteNonQuery();
+    }
 }

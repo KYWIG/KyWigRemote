@@ -81,6 +81,12 @@ public sealed record AuditEventSummary(
 /// <summary>Réponse minimale d'une création : l'identifiant attribué.</summary>
 public sealed record CreatedId(int Id);
 
+/// <summary>Demande de purge du journal d'audit : supprime les événements plus vieux que N jours (E9.5).</summary>
+public sealed record PurgeAuditRequest(int RetentionDays);
+
+/// <summary>Résultat d'une purge d'audit : nombre d'événements supprimés.</summary>
+public sealed record PurgeAuditResult(int Deleted);
+
 /// <summary>Demande de création d'un identifiant imposé. Le secret est chiffré côté serveur.</summary>
 /// <param name="Label">Libellé lisible.</param>
 /// <param name="Username">Nom d'utilisateur du compte.</param>

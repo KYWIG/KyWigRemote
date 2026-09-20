@@ -494,6 +494,21 @@ admin.MapGet("/audit", (string? user, string? result, int? limit, IAuditReposito
     return Results.Ok(summaries);
 });
 
+// Purge du journal d'audit selon une rétention en jours (E9.5). La purge est elle-même tracée.
+admin.MapPost("/audit/purge",
+    (PurgeAuditRequest request, ClaimsPrincipal user, IAuditRepository audit) =>
+{
+    if (request.RetentionDays < 1)
+    {
+        return Results.BadRequest(new { error = "La rétention doit être d'au moins 1 jour." });
+    }
+    DateTimeOffset cutoff = DateTimeOffset.UtcNow.AddDays(-request.RetentionDays);
+    int deleted = audit.PurgeOlderThan(cutoff);
+    WriteAudit(audit, user.Identity?.Name, "AUDIT_PURGE", result: "OK",
+        details: $"{deleted} événement(s) antérieur(s) à {request.RetentionDays} jour(s)");
+    return Results.Ok(new PurgeAuditResult(deleted));
+});
+
     app.Run();
 }
 catch (Exception ex)

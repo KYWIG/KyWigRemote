@@ -57,4 +57,20 @@ public class AuditRepositoryTests
         Assert.Equal("C", limited[0].Action); // le plus récent d'abord
         Assert.Equal("B", limited[1].Action);
     }
+
+    [Fact]
+    public void PurgeOlderThan_SupprimeLesAnciensEtConserveLesRecents()
+    {
+        using var temp = new TempDatabase();
+        SqliteAuditRepository repo = NewRepository(temp);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        repo.Append(new AuditEvent { Action = "VIEUX", OccurredAt = now.AddDays(-40) });
+        repo.Append(new AuditEvent { Action = "RECENT", OccurredAt = now.AddDays(-2) });
+
+        int deleted = repo.PurgeOlderThan(now.AddDays(-30));
+
+        Assert.Equal(1, deleted);
+        AuditEvent survivant = Assert.Single(repo.Query(new AuditQuery()));
+        Assert.Equal("RECENT", survivant.Action);
+    }
 }

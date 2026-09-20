@@ -10,6 +10,12 @@ public interface IAuditRepository
 
     /// <summary>Retourne les événements correspondant au filtre, du plus récent au plus ancien.</summary>
     IReadOnlyList<AuditEvent> Query(AuditQuery filter);
+
+    /// <summary>
+    /// Supprime les événements antérieurs à la date indiquée (rétention, E9.5) et retourne
+    /// le nombre d'événements supprimés.
+    /// </summary>
+    int PurgeOlderThan(DateTimeOffset cutoff);
 }
 
 /// <summary>Filtre de consultation du journal d'audit (tous les critères sont facultatifs).</summary>

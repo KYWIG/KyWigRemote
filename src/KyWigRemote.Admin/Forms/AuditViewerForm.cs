@@ -14,6 +14,7 @@ internal sealed class AuditViewerForm : Form
     private readonly ServerClient _server;
     private readonly TextBox _userFilter;
     private readonly ComboBox _resultFilter;
+    private readonly NumericUpDown _retentionDays;
     private readonly ListView _list;
     private readonly ToolStripStatusLabel _statusLabel;
 
@@ -41,6 +42,20 @@ internal sealed class AuditViewerForm : Form
         apply.FlatAppearance.BorderColor = DarkPalette.Border;
         apply.Click += async (_, _) => await LoadAsync();
         filterBar.Controls.Add(apply);
+
+        // Purge par rétention (E9.5) : supprime les événements plus vieux que N jours.
+        filterBar.Controls.Add(new Label { Text = "Purger >", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(600, 12) });
+        _retentionDays = new NumericUpDown
+        {
+            Location = new Point(668, 9), Width = 60, Minimum = 1, Maximum = 3650, Value = 90,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+        };
+        filterBar.Controls.Add(_retentionDays);
+        filterBar.Controls.Add(new Label { Text = "jours", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(732, 12) });
+        var purge = new Button { Text = "Purger", Location = new Point(778, 8), Width = 90, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        purge.FlatAppearance.BorderColor = DarkPalette.Border;
+        purge.Click += async (_, _) => await PurgeAsync();
+        filterBar.Controls.Add(purge);
 
         _list = new ListView
         {
@@ -93,6 +108,32 @@ internal sealed class AuditViewerForm : Form
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             MessageBox.Show(this, "Impossible de charger le journal d'audit.",
+                "KyWigRemote — Journal d'audit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private async Task PurgeAsync()
+    {
+        int days = (int)_retentionDays.Value;
+        DialogResult confirm = MessageBox.Show(this,
+            $"Supprimer définitivement les événements d'audit de plus de {days} jour(s) ?\r\n" +
+            "Cette action est irréversible et sera elle-même tracée.",
+            "KyWigRemote — Purge du journal", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+        if (confirm != DialogResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            int deleted = await _server.PurgeAuditAsync(days);
+            MessageBox.Show(this, $"{deleted} événement(s) supprimé(s).",
+                "KyWigRemote — Purge du journal", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            MessageBox.Show(this, "La purge du journal a échoué.",
                 "KyWigRemote — Journal d'audit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }

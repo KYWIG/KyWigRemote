@@ -278,6 +278,16 @@ public sealed class ServerClient : IDisposable
         return list ?? new List<AuditEventSummary>();
     }
 
+    /// <summary>Purge le journal d'audit (rétention en jours) et retourne le nombre d'événements supprimés.</summary>
+    public async Task<int> PurgeAuditAsync(int retentionDays, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "/api/admin/audit/purge", new PurgeAuditRequest(retentionDays), JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        PurgeAuditResult? result = await response.Content.ReadFromJsonAsync<PurgeAuditResult>(JsonOptions, cancellationToken);
+        return result?.Deleted ?? 0;
+    }
+
     public void Dispose() => _http.Dispose();
 }
 
