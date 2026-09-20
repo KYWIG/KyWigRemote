@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using KyWigRemote.Client.Sessions;
 using KyWigRemote.Shared.UI;
 using KyWigRemote.Core.Model;
 using KyWigRemote.Core.Remote;
@@ -243,6 +244,7 @@ internal sealed class MainForm : Form
         // l'identifiant selon le mode avant d'ouvrir l'onglet.
         CredentialMode mode = CredentialResolver.ResolveEffectiveMode(_roots, connection);
         string? resolvedUser = null;
+        SessionCredential? credential = null;
 
         try
         {
@@ -254,6 +256,7 @@ internal sealed class MainForm : Form
                     if (existing is not null)
                     {
                         resolvedUser = existing.Username;
+                        credential = new SessionCredential(existing.Username, existing.Domain, existing.Secret);
                     }
                     else
                     {
@@ -263,6 +266,7 @@ internal sealed class MainForm : Form
                             return;
                         }
                         resolvedUser = prompt.Username;
+                        credential = new SessionCredential(prompt.Username, connection.Domain, prompt.Password);
                         if (prompt.Remember || prompt.RememberGlobal)
                         {
                             await _server.SavePersonalCredentialAsync(connection.Id,
@@ -280,13 +284,23 @@ internal sealed class MainForm : Form
                         return;
                     }
                     resolvedUser = prompt.Username;
+                    credential = new SessionCredential(prompt.Username, connection.Domain, prompt.Password);
                     break;
                 }
 
                 case CredentialMode.Enforced:
-                    // Le secret imposé sera injecté à l'ouverture réelle (E5) ; sa révélation est
-                    // réservée à l'admin pour l'instant (contrôle par groupes AD = E3).
+                {
+                    // Révèle le secret imposé (autorisé par groupes AD, FR-15) pour l'injecter.
+                    // En cas de refus/erreur, l'ouverture continue sans injection : la session
+                    // réclamera elle-même les identifiants (invite NLA côté RDP).
+                    RevealedCredential? enforced = await _server.GetEnforcedSecretAsync(connection.Id);
+                    if (enforced is not null)
+                    {
+                        resolvedUser = enforced.Username;
+                        credential = new SessionCredential(enforced.Username, enforced.Domain, enforced.Secret);
+                    }
                     break;
+                }
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -308,7 +322,7 @@ internal sealed class MainForm : Form
             // Sans importance pour l'ouverture de l'onglet.
         }
 
-        var session = new SessionPanel(connection, mode, resolvedUser);
+        var session = new SessionPanel(connection, mode, resolvedUser, credential);
         session.Show(_dockPanel, DockState.Document);
     }
 

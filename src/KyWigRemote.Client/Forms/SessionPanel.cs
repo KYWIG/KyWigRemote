@@ -18,16 +18,19 @@ internal sealed class SessionPanel : DockContent
 {
     private readonly RemoteConnection _connection;
     private readonly string? _resolvedUsername;
+    private readonly SessionCredential? _credential;
     private PuttySshSession? _ssh;
     private RdpSessionControl? _rdp;
 
     // effectiveMode est conservé dans la signature pour l'appelant ; l'ouverture réelle
-    // n'en dépend pas encore (l'authentification est saisie dans la session elle-même).
-    public SessionPanel(RemoteConnection connection, CredentialMode effectiveMode, string? resolvedUsername)
+    // n'en dépend pas (l'identifiant résolu est porté par credential).
+    public SessionPanel(RemoteConnection connection, CredentialMode effectiveMode,
+        string? resolvedUsername, SessionCredential? credential = null)
     {
         _ = effectiveMode;
         _connection = connection;
         _resolvedUsername = resolvedUsername;
+        _credential = credential;
 
         Text = connection.Name;
         DockAreas = DockAreas.Document;
@@ -58,7 +61,7 @@ internal sealed class SessionPanel : DockContent
     {
         try
         {
-            _rdp = new RdpSessionControl(_connection, _resolvedUsername) { Dock = DockStyle.Fill };
+            _rdp = new RdpSessionControl(_connection, _credential) { Dock = DockStyle.Fill };
             _rdp.SessionEnded += (_, _) => Close();
             Controls.Add(_rdp);
         }

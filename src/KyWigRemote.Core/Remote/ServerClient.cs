@@ -209,6 +209,24 @@ public sealed class ServerClient : IDisposable
         return await response.Content.ReadFromJsonAsync<RevealedCredential>(JsonOptions, cancellationToken);
     }
 
+    /// <summary>
+    /// Révèle l'identifiant imposé rattaché à une connexion, pour ouvrir la session.
+    /// Renvoie null si l'accès est refusé (hors groupe autorisé, 403), si la connexion n'a pas
+    /// d'identifiant imposé, ou si l'annuaire est injoignable (503).
+    /// </summary>
+    public async Task<RevealedCredential?> GetEnforcedSecretAsync(int connectionId, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.GetAsync(
+            $"/api/connections/{connectionId}/enforced-secret", cancellationToken);
+        if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound
+            or HttpStatusCode.BadRequest or HttpStatusCode.ServiceUnavailable)
+        {
+            return null;
+        }
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<RevealedCredential>(JsonOptions, cancellationToken);
+    }
+
     /// <summary>Enregistre l'identifiant personnel de l'utilisateur pour cette connexion (ou globalement).</summary>
     public async Task SavePersonalCredentialAsync(
         int connectionId, SavePersonalCredentialRequest request, CancellationToken cancellationToken = default)

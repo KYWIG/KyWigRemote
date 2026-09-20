@@ -17,16 +17,16 @@ internal sealed class RdpSessionControl : UserControl
 {
     private readonly AxMsRdpClient9NotSafeForScripting _client;
     private readonly RemoteConnection _connection;
-    private readonly string? _username;
+    private readonly SessionCredential? _credential;
     private bool _connectRequested;
 
     /// <summary>Déclenché à la déconnexion (fin de session ou échec) pour fermer l'onglet.</summary>
     public event EventHandler? SessionEnded;
 
-    public RdpSessionControl(RemoteConnection connection, string? username)
+    public RdpSessionControl(RemoteConnection connection, SessionCredential? credential)
     {
         _connection = connection;
-        _username = username;
+        _credential = credential;
 
         _client = new AxMsRdpClient9NotSafeForScripting { Dock = DockStyle.Fill };
         _client.OnDisconnected += OnDisconnected;
@@ -49,11 +49,26 @@ internal sealed class RdpSessionControl : UserControl
     private void ConnectClient()
     {
         _client.Server = _connection.Host;
-        if (!string.IsNullOrWhiteSpace(_username))
+
+        // Injection de l'identifiant résolu (imposé/personnel/demandé) si disponible.
+        // ClearTextPassword est une string : dernière API exigeant une chaîne, tolérée par
+        // la règle 3 de CLAUDE.md. Le secret n'est jamais journalisé.
+        if (_credential is not null)
         {
-            _client.UserName = _username;
+            if (!string.IsNullOrWhiteSpace(_credential.Username))
+            {
+                _client.UserName = _credential.Username;
+            }
+            if (!string.IsNullOrWhiteSpace(_credential.Domain))
+            {
+                _client.Domain = _credential.Domain;
+            }
+            if (!string.IsNullOrEmpty(_credential.Password))
+            {
+                _client.AdvancedSettings9.ClearTextPassword = _credential.Password;
+            }
         }
-        if (!string.IsNullOrWhiteSpace(_connection.Domain))
+        else if (!string.IsNullOrWhiteSpace(_connection.Domain))
         {
             _client.Domain = _connection.Domain;
         }
