@@ -14,16 +14,36 @@ using KyWigRemote.Core.Security;
 using KyWigRemote.Server.Configuration;
 using KyWigRemote.Server.Contracts;
 using KyWigRemote.Server.Security;
+using Serilog;
 
 // Serveur KyWigRemote (architecture client/serveur).
 // Tout le comportement (adresse d'écoute, base, authentification) vient de la
 // configuration (appsettings.json, section « KyWigRemote ») — rien n'est codé en dur.
+
+// Journal Serilog : console + fichier tournant quotidien sous logs\. Aucun secret n'y est
+// écrit (règle 2 de CLAUDE.md) : on ne journalise que méthodes, chemins, identités et libellés.
+string logDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(Path.Combine(logDirectory, "kywig-.log"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 14)
+    .CreateLogger();
+
+try
+{
+    Log.Information("Démarrage du serveur KyWigRemote.");
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
     ContentRootPath = AppContext.BaseDirectory,
 });
+
+builder.Host.UseSerilog();
 
 // Configuration lue et validée au démarrage.
 var options = builder.Configuration.GetSection(KyWigRemoteOptions.SectionName).Get<KyWigRemoteOptions>()
@@ -112,6 +132,9 @@ builder.Services.AddAuthorization(auth =>
 });
 
 WebApplication app = builder.Build();
+
+// Journalise chaque requête (méthode, chemin, code, durée) — sans corps ni secret.
+app.UseSerilogRequestLogging();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -471,7 +494,17 @@ admin.MapGet("/audit", (string? user, string? result, int? limit, IAuditReposito
     return Results.Ok(summaries);
 });
 
-app.Run();
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Arrêt inattendu du serveur KyWigRemote au démarrage.");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 // --- Ouverture de la base selon la configuration ---
 static Database OpenDatabase(DatabaseOptions databaseOptions)

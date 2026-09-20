@@ -15,6 +15,9 @@
     <!-- Version 8.0.x la plus récente (corrige les vulnérabilités connues des 8.0.8). -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="8.0.*" />
+    <!-- Journal structuré (pile validée, CLAUDE.md). Console + fichier tournant. -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.*" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.*" />
   </ItemGroup>
 
 </Project>
