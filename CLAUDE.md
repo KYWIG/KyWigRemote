@@ -121,6 +121,12 @@ dotnet run --project src/KyWigRemote.Admin      # lancer l'administration
 dotnet format                                   # formatage avant commit
 ```
 
+Instance de dev complète en une commande (serveur + amorçage admin + client + admin) :
+
+```powershell
+.\tools\dev-run.ps1 -AdminPassword '<mot-de-passe-dev>' -Reset
+```
+
 ## Git
 
 - Une branche par story : `feature/E4.3-envelope-crypto`
