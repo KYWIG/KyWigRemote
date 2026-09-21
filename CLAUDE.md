@@ -133,6 +133,12 @@ Publication ClickOnce du client (Build Tools 2022 suffit, sans Visual Studio) :
 .\tools\publish-clickonce.ps1 -Clean
 ```
 
+Construction de l'installeur MSI final (serveur + gestionnaire + admin + page web ClickOnce) :
+
+```powershell
+.\tools\build-release.ps1 -Version 1.0.0.0
+```
+
 ## Git
 
 - Une branche par story : `feature/E4.3-envelope-crypto`

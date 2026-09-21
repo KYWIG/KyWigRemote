@@ -25,6 +25,7 @@ public sealed class ServerConnectDialog : Form
     public ServerConnectDialog(string caption, string? defaultUrl)
     {
         Text = caption;
+        Icon = BrandAssets.AppIcon;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MinimizeBox = false;

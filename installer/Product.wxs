@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Installeur MSI de KyWigRemote (poste serveur).
+  Regroupe le serveur (autonome), le gestionnaire de service, la console d'administration
+  et la distribution web ClickOnce du client. Les fichiers sont moissonnes depuis le dossier
+  de preparation (StagingDir) construit par tools\build-release.ps1.
+
+  Le service Windows n'est PAS installe par le MSI : il se pose via le gestionnaire
+  (KyWigRemote.ServerManager.exe -> « Installer »), qui gere aussi demarrage/arret.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="KyWigRemote"
+           Manufacturer="KyWig Informatique"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="2334AC92-E0CB-4C34-9BBF-57D8A99C0C55"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <SummaryInformation Description="KyWigRemote — serveur, administration et distribution du client" />
+
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente de KyWigRemote est déjà installée." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://kywig.bzh" />
+
+    <!-- Arborescence : Program Files\KyWig Informatique\KyWigRemote\{server,admin,web} -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="MFGDIR" Name="KyWig Informatique">
+        <Directory Id="INSTALLFOLDER" Name="KyWigRemote">
+          <Directory Id="SERVERDIR" Name="server" />
+          <Directory Id="ADMINDIR" Name="admin" />
+          <Directory Id="WEBDIR" Name="web" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="APPMENUDIR" Name="KyWigRemote" />
+    </StandardDirectory>
+
+    <!-- Moisson automatique des fichiers publies (un composant par fichier). -->
+    <ComponentGroup Id="ServerFiles" Directory="SERVERDIR">
+      <Files Include="$(var.StagingDir)\server\**" />
+    </ComponentGroup>
+    <ComponentGroup Id="AdminFiles" Directory="ADMINDIR">
+      <Files Include="$(var.StagingDir)\admin\**" />
+    </ComponentGroup>
+    <ComponentGroup Id="WebFiles" Directory="WEBDIR">
+      <Files Include="$(var.StagingDir)\web\**" />
+    </ComponentGroup>
+
+    <!-- Raccourcis du menu Démarrer (non publicitaires : cible directe des exe). -->
+    <Component Id="Shortcuts" Directory="APPMENUDIR" Guid="EFC54809-E9AC-45FF-B2C2-34B595D530C8">
+      <Shortcut Id="ManagerShortcut"
+                Name="KyWigRemote — Gestion du serveur"
+                Description="Installer et piloter le serveur KyWigRemote en service Windows"
+                Target="[SERVERDIR]KyWigRemote.ServerManager.exe"
+                WorkingDirectory="SERVERDIR" />
+      <Shortcut Id="AdminShortcut"
+                Name="KyWigRemote — Administration"
+                Description="Console d'administration KyWigRemote"
+                Target="[ADMINDIR]KyWigRemote.Admin.exe"
+                WorkingDirectory="ADMINDIR" />
+      <RemoveFolder Id="RemoveAppMenu" Directory="APPMENUDIR" On="uninstall" />
+      <RegistryValue Root="HKMU" Key="Software\KyWig Informatique\KyWigRemote"
+                     Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="Main" Title="KyWigRemote" Level="1">
+      <ComponentGroupRef Id="ServerFiles" />
+      <ComponentGroupRef Id="AdminFiles" />
+      <ComponentGroupRef Id="WebFiles" />
+      <ComponentRef Id="Shortcuts" />
+    </Feature>
+  </Package>
+</Wix>

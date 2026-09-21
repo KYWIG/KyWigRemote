@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using KyWigRemote.Core.Data;
 using KyWigRemote.Core.Directory;
@@ -138,6 +140,10 @@ WebApplication app = builder.Build();
 
 // Journalise chaque requête (méthode, chemin, code, durée) — sans corps ni secret.
 app.UseSerilogRequestLogging();
+
+// Distribution ClickOnce du client (page d'installation publique), si un dossier est configuré.
+// Servie avant l'authentification : l'installeur doit être accessible sans jeton.
+ConfigureClickOnceHosting(app, options.Distribution);
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -522,6 +528,48 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+// --- Hébergement de la distribution ClickOnce du client ---
+// Sert un dossier (page d'installation + manifestes + fichiers) avec les types MIME que
+// ClickOnce exige (.application, .manifest, .deploy). Sans dossier configuré : aucun effet.
+static void ConfigureClickOnceHosting(WebApplication app, DistributionOptions distribution)
+{
+    string? webRoot = distribution.ResolveWebRoot();
+    if (webRoot is null || !Directory.Exists(webRoot))
+    {
+        if (webRoot is not null)
+        {
+            Log.Warning("Distribution ClickOnce désactivée : dossier introuvable ({WebRoot}).", webRoot);
+        }
+        return;
+    }
+
+    var contentTypes = new FileExtensionContentTypeProvider();
+    contentTypes.Mappings[".application"] = "application/x-ms-application";
+    contentTypes.Mappings[".manifest"] = "application/x-ms-manifest";
+    contentTypes.Mappings[".deploy"] = "application/octet-stream";
+    contentTypes.Mappings[".msi"] = "application/octet-stream";
+
+    var fileProvider = new PhysicalFileProvider(webRoot);
+    string requestPath = distribution.RequestPath.TrimEnd('/');
+
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        FileProvider = fileProvider,
+        RequestPath = requestPath,
+    });
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = fileProvider,
+        RequestPath = requestPath,
+        ContentTypeProvider = contentTypes,
+        // Autorise les extensions inconnues (ex. « .deploy ») avec un type par défaut binaire.
+        ServeUnknownFileTypes = true,
+        DefaultContentType = "application/octet-stream",
+    });
+
+    Log.Information("Distribution ClickOnce servie sur {RequestPath} depuis {WebRoot}.", requestPath, webRoot);
 }
 
 // --- Ouverture de la base selon la configuration ---

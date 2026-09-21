@@ -85,6 +85,7 @@ Aucun secret journalisé (règle 2). L'audit métier (E9, base) reste distinct d
 | M365 / Entra (§3) | non livré | tenant Entra + validation du paquet MSAL |
 | SQL Server (§5) | non livré | instance SQL Server + implémentation du fournisseur |
 | Distribution ClickOnce | **livré (CLI)** | `.\tools\publish-clickonce.ps1 -Clean` (Build Tools 2022 suffit) |
+| Installeur MSI + distribution web | **livré** | `.\tools\build-release.ps1` → `dist\release\KyWigRemote-Setup.msi` (voir `installer\README.md`) |
 | Rendu visuel RDP/SSH | non vérifié ici | poste avec bureau interactif + cible de test |
 
 ### ClickOnce en ligne de commande
@@ -103,6 +104,18 @@ La sortie va dans `src\KyWigRemote.Client\dist\ClientClickOnce\` (ignorée par G
 manifeste `KyWigRemote.Client.application` + `Application Files\` (runtime .NET autonome
 embarqué, rien à installer sur le poste cible). L'incrément de version (`ApplicationRevision`)
 n'est **pas** automatique en CLI — le gérer à la main dans le profil avant chaque publication.
+Le manifeste généré ne contient **aucun `deploymentProvider`** absolu : le client s'installe
+depuis l'emplacement où le `.application` est téléchargé, donc l'hébergement fonctionne quel
+que soit le nom d'hôte du serveur, sans URL à graver.
+
+### Installeur MSI et distribution web
+
+`tools\build-release.ps1` produit `dist\release\KyWigRemote-Setup.msi` (WiX v5, libre) qui
+installe sur le poste serveur : le serveur autonome, le gestionnaire de service, la console
+d'administration et la page web ClickOnce. Le serveur héberge cette page sur `/install`
+(section de config `KyWigRemote:Distribution`, `WebRoot` relatif résolu à côté de l'exécutable).
+Les techniciens installent le client depuis `http://<serveur>:5080/install`. Détails et étapes
+de déploiement dans `installer\README.md`.
 
 ## Récapitulatif des ADR amendés
 

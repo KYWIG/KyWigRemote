@@ -11,4 +11,11 @@
     <ProjectReference Include="..\KyWigRemote.Core\KyWigRemote.Core.csproj" />
   </ItemGroup>
 
+  <!-- Icone de marque, partagee par le client, l'administration et le gestionnaire. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\assets\brand\kywig.ico">
+      <LogicalName>KyWigRemote.Shared.UI.kywig.ico</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!--
+  Page d'installation ClickOnce du client KyWigRemote.
+  Servie par le serveur (section Distribution) sous /install. Sobre, thème sombre,
+  cohérente avec docs/04-ui-spec.md. Le lien pointe vers le manifeste de déploiement
+  généré à côté (« KyWigRemote.Client.application »).
+-->
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KyWigRemote — Installation du client</title>
+  <link rel="icon" type="image/png" href="kywig-256.png">
+  <style>
+    :root {
+      --bg: #2D2D30;
+      --panel: #252526;
+      --input: #333337;
+      --border: #3F3F46;
+      --text: #F1F1F1;
+      --muted: #9B9B9B;
+      --accent: #007ACC;
+      --accent-strong: #005A99;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 520px;
+      padding: 32px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .brand img { width: 56px; height: 56px; display: block; }
+    .brand h1 { font-size: 22px; font-weight: 600; margin: 0; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    h2 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
+    p.lead { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 24px; }
+    a.install {
+      display: inline-block;
+      background: var(--accent);
+      color: #FFFFFF;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border: 1px solid var(--accent-strong);
+    }
+    a.install:hover { background: var(--accent-strong); }
+    .meta {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .meta a { color: var(--accent); }
+    code { background: var(--input); padding: 1px 5px; border: 1px solid var(--border); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <img src="kywig-256.png" alt="Logo KyWigRemote">
+      <div>
+        <h1>KyWigRemote</h1>
+        <p>KyWig Informatique</p>
+      </div>
+    </div>
+
+    <h2>Installer le client de connexion distante</h2>
+    <p class="lead">
+      Console de gestion des connexions RDP et SSH. L'installation est prise en charge par
+      Windows (ClickOnce) : le client se met en place pour votre session, avec un raccourci
+      dans le menu Démarrer. Aucun composant supplémentaire n'est requis.
+    </p>
+
+    <a class="install" href="KyWigRemote.Client.application">Installer KyWigRemote</a>
+
+    <div class="meta">
+      Éditeur : KyWig Informatique &middot; Runtime .NET embarqué (rien à installer).<br>
+      Si l'installation ne démarre pas automatiquement, téléchargez puis ouvrez
+      <a href="KyWigRemote.Client.application">KyWigRemote.Client.application</a>.<br>
+      La désinstallation se fait depuis <code>Paramètres &rsaquo; Applications</code>.
+    </div>
+  </main>
+</body>
+</html>

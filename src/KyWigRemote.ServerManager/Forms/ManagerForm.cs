@@ -40,6 +40,7 @@ internal sealed class ManagerForm : Form
         _tailer = new LogTailer(ServerLocator.FindLogDirectory(_serverExe));
 
         Text = "KyWigRemote — Gestion du serveur";
+        Icon = BrandAssets.AppIcon;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(720, 520);
         Size = new Size(760, 560);

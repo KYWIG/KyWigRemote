@@ -21,6 +21,7 @@ internal sealed class AdminMainForm : Form
         _server = server ?? throw new ArgumentNullException(nameof(server));
 
         Text = "KyWigRemote — Administration";
+        Icon = BrandAssets.AppIcon;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(820, 520);
         BackColor = DarkPalette.Background;

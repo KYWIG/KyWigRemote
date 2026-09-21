@@ -18,6 +18,9 @@ public sealed class KyWigRemoteOptions
     /// <summary>Fournisseurs d'authentification activés et leurs paramètres.</summary>
     public AuthenticationOptions Authentication { get; set; } = new();
 
+    /// <summary>Distribution du client par ClickOnce, servie en HTTP par ce serveur.</summary>
+    public DistributionOptions Distribution { get; set; } = new();
+
     /// <summary>Valide la cohérence de la configuration ; lève une exception listant les erreurs.</summary>
     public void Validate()
     {
@@ -92,6 +95,41 @@ public sealed class ServerOptions
 {
     /// <summary>Adresse(s) d'écoute HTTP. « http://0.0.0.0:5080 » pour écouter sur le réseau.</summary>
     public string Urls { get; set; } = "http://localhost:5080";
+}
+
+/// <summary>
+/// Distribution du client par ClickOnce, hébergée par ce même serveur. Permet aux techniciens
+/// d'installer le client depuis une page web, sans partage de fichiers ni déploiement manuel.
+/// </summary>
+public sealed class DistributionOptions
+{
+    /// <summary>
+    /// Dossier contenant la publication ClickOnce du client : page « index.html », manifeste
+    /// « KyWigRemote.Client.application » et dossier « Application Files ». Laissé vide,
+    /// l'hébergement est désactivé. Les variables d'environnement %VAR% sont développées.
+    /// </summary>
+    public string? WebRoot { get; set; }
+
+    /// <summary>Chemin web où la page d'installation est servie (par défaut « /install »).</summary>
+    public string RequestPath { get; set; } = "/install";
+
+    /// <summary>
+    /// Dossier de distribution résolu (variables d'environnement développées, chemin relatif
+    /// rendu absolu par rapport au dossier de l'exécutable), ou <c>null</c> si désactivé.
+    /// Le relatif permet à l'installeur de placer « web » à côté du serveur sans connaître
+    /// le dossier d'installation à l'avance (ex. « ..\web »).
+    /// </summary>
+    public string? ResolveWebRoot()
+    {
+        if (string.IsNullOrWhiteSpace(WebRoot))
+        {
+            return null;
+        }
+        string expanded = Environment.ExpandEnvironmentVariables(WebRoot);
+        return Path.IsPathRooted(expanded)
+            ? expanded
+            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, expanded));
+    }
 }
 
 /// <summary>Moteur de base de données supporté.</summary>
