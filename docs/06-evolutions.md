@@ -84,8 +84,25 @@ Aucun secret journalisé (règle 2). L'audit métier (E9, base) reste distinct d
 |---|---|---|
 | M365 / Entra (§3) | non livré | tenant Entra + validation du paquet MSAL |
 | SQL Server (§5) | non livré | instance SQL Server + implémentation du fournisseur |
-| Distribution ClickOnce | bloqué en CLI | build via Visual Studio Community (profil prêt) |
+| Distribution ClickOnce | **livré (CLI)** | `.\tools\publish-clickonce.ps1 -Clean` (Build Tools 2022 suffit) |
 | Rendu visuel RDP/SSH | non vérifié ici | poste avec bureau interactif + cible de test |
+
+### ClickOnce en ligne de commande
+
+Contrairement à ce qui était supposé, la publication ClickOnce **ne nécessite ni
+Visual Studio Community ni installation supplémentaire** : les charges Build Tools 2022
+`ClickOnce`, `NetCore.Component.SDK` et `ManagedDesktop` suffisent. Le script
+`tools\publish-clickonce.ps1` la reproduit et gère les deux conditions qui la font
+échouer autrement :
+
+1. le host `dotnet` doit être résoluble par MSBuild (SDK .NET sur le PATH) ;
+2. `MSBuild.exe` doit tourner **dans** l'environnement développeur (`VsDevCmd.bat`),
+   sinon la résolution des ressources satellites échoue (centaines d'erreurs `MSB3113`).
+
+La sortie va dans `src\KyWigRemote.Client\dist\ClientClickOnce\` (ignorée par Git) :
+manifeste `KyWigRemote.Client.application` + `Application Files\` (runtime .NET autonome
+embarqué, rien à installer sur le poste cible). L'incrément de version (`ApplicationRevision`)
+n'est **pas** automatique en CLI — le gérer à la main dans le profil avant chaque publication.
 
 ## Récapitulatif des ADR amendés
 

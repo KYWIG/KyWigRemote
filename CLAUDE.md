@@ -127,6 +127,12 @@ Instance de dev complète en une commande (serveur + amorçage admin + client + 
 .\tools\dev-run.ps1 -AdminPassword '<mot-de-passe-dev>' -Reset
 ```
 
+Publication ClickOnce du client (Build Tools 2022 suffit, sans Visual Studio) :
+
+```powershell
+.\tools\publish-clickonce.ps1 -Clean
+```
+
 ## Git
 
 - Une branche par story : `feature/E4.3-envelope-crypto`
