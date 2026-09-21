@@ -45,6 +45,9 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 
 builder.Host.UseSerilog();
 
+// Permet l'exécution en service Windows (sans session ouverte). Sans effet en console/dev.
+builder.Host.UseWindowsService();
+
 // Configuration lue et validée au démarrage.
 var options = builder.Configuration.GetSection(KyWigRemoteOptions.SectionName).Get<KyWigRemoteOptions>()
               ?? new KyWigRemoteOptions();
