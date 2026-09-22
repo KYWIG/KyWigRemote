@@ -569,6 +569,9 @@ static void ConfigureClickOnceHosting(WebApplication app, DistributionOptions di
         DefaultContentType = "application/octet-stream",
     });
 
+    // Confort : la racine renvoie vers la page d'installation (évite un 404 déroutant).
+    app.MapGet("/", () => Results.Redirect($"{requestPath}/"));
+
     Log.Information("Distribution ClickOnce servie sur {RequestPath} depuis {WebRoot}.", requestPath, webRoot);
 }
 

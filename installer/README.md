@@ -16,11 +16,17 @@ serveur et cliquent sur « Installer » (ClickOnce).
 ## Construire l'installeur
 
 ```powershell
-.\tools\build-release.ps1 -Version 1.0.0.0
+.\tools\build-release.ps1 -Version 1.0.0.0 -BaseUrl http://<nom-du-serveur>:5080/install
 ```
 
 Produit `dist\release\KyWigRemote-Setup.msi`. Prérequis : SDK .NET, Build Tools 2022 (ClickOnce)
 et l'outil WiX (`dotnet tool install --global wix --version 5.0.2`).
+
+> **`-BaseUrl` est important** : cette URL (le nom réel du serveur qui hébergera la page) est
+> gravée dans le manifeste ClickOnce. Sans elle (défaut `localhost`), le client ne s'installera
+> que depuis le serveur lui-même — un poste distant échouera avec « les zones de sécurité ne
+> correspondent pas ». L'installeur est donc **spécifique au serveur** : reconstruire si le nom
+> change.
 
 > WiX v5 est retenu volontairement : c'est la dernière version **libre** (licence MS-RL). WiX v6+
 > impose l'« Open Source Maintenance Fee » (redevance pour usage commercial), écartée ici.

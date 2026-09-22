@@ -104,9 +104,14 @@ La sortie va dans `src\KyWigRemote.Client\dist\ClientClickOnce\` (ignorée par G
 manifeste `KyWigRemote.Client.application` + `Application Files\` (runtime .NET autonome
 embarqué, rien à installer sur le poste cible). L'incrément de version (`ApplicationRevision`)
 n'est **pas** automatique en CLI — le gérer à la main dans le profil avant chaque publication.
-Le manifeste généré ne contient **aucun `deploymentProvider`** absolu : le client s'installe
-depuis l'emplacement où le `.application` est téléchargé, donc l'hébergement fonctionne quel
-que soit le nom d'hôte du serveur, sans URL à graver.
+Le manifeste doit contenir un **`deploymentProvider`** pointant vers l'URL HTTP de la page
+d'installation du serveur (paramètre `-InstallUrl` de `publish-clickonce.ps1`, `-BaseUrl` de
+`build-release.ps1`). C'est indispensable : les navigateurs modernes **téléchargent** le
+`.application` puis l'ouvrent depuis le dossier local ; sans URL gravée, ClickOnce cherche les
+fichiers à côté du manifeste téléchargé et échoue avec « les zones de sécurité ne correspondent
+pas ». L'URL gravée est donc **spécifique au serveur de déploiement** : reconstruire si le nom
+du serveur change. (Techniquement : `UpdateEnabled=true` + `UpdateUrl=<dossier>/` — ClickOnce
+ajoute lui-même le nom du manifeste ; ne pas surcharger `PublishDir`, cela réveille MSB3113.)
 
 ### Installeur MSI et distribution web
 

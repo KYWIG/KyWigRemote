@@ -27,6 +27,10 @@ param(
     [string]$Configuration = "Release",
     [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
     [string]$Version = "1.0.0.0",
+    # URL publique de la page d'installation sur LE serveur cible (ex. http://kers014:5080/install).
+    # Elle est gravee dans le manifeste ClickOnce : indispensable pour que le client s'installe
+    # apres telechargement par le navigateur. A adapter au nom reel du serveur de deploiement.
+    [string]$BaseUrl = "http://localhost:5080/install",
     [switch]$SkipMsi
 )
 
@@ -58,7 +62,12 @@ $webStage = Join-Path $staging "web"
 $msiPath = Join-Path $dist "KyWigRemote-Setup.msi"
 
 Write-Host "== KyWigRemote : construction de l'installeur ($Version) ==" -ForegroundColor Cyan
-Write-Host "dotnet : $dotnet"
+Write-Host "dotnet  : $dotnet"
+Write-Host "BaseUrl : $BaseUrl"
+if ($BaseUrl -match "localhost|127\.0\.0\.1") {
+    Write-Warning "BaseUrl pointe sur localhost : le client ne s'installera QUE depuis le serveur lui-meme. " +
+        "Pour un deploiement reseau, relancer avec -BaseUrl http://<nom-du-serveur>:5080/install"
+}
 
 # --- Nettoyage ---
 if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
@@ -98,7 +107,7 @@ Write-Host "      Distribution web activee (WebRoot=..\web), ecoute sur 0.0.0.0:
 
 # --- 4. Client ClickOnce + page web ---
 Write-Host "[4/5] Publication ClickOnce du client..." -ForegroundColor Green
-& (Join-Path $PSScriptRoot "publish-clickonce.ps1") -Configuration $Configuration -Clean
+& (Join-Path $PSScriptRoot "publish-clickonce.ps1") -Configuration $Configuration -InstallUrl $BaseUrl -Clean
 if ($LASTEXITCODE -ne 0) { throw "Echec de publication ClickOnce." }
 $clickOnceDir = Join-Path $repoRoot "src\KyWigRemote.Client\dist\ClientClickOnce"
 Copy-Item (Join-Path $clickOnceDir "*") $webStage -Recurse -Force

@@ -27,6 +27,12 @@
 [CmdletBinding()]
 param(
     [string]$Configuration = "Release",
+    # URL HTTP ou est publiee la distribution (page /install du serveur), SANS le nom de fichier.
+    # Exemple : http://kers014:5080/install. Gravee dans le manifeste comme fournisseur de
+    # deploiement : indispensable pour que le client s'installe apres avoir ete telecharge par
+    # le navigateur (sinon « les zones de securite ne correspondent pas »). Vide = pas d'URL
+    # gravee (le .application ne fonctionne alors qu'active directement depuis son URL http).
+    [string]$InstallUrl,
     [switch]$Clean
 )
 
@@ -82,6 +88,15 @@ if ($LASTEXITCODE -ne 0) { throw "La restauration a echoue (code $LASTEXITCODE).
 # l'execution (apres VsDevCmd), contrairement a un "cmd /c a && b" ou il serait pre-substitue
 # et ecraserait le PATH etabli par VsDevCmd (msbuild deviendrait introuvable).
 $msbuildArgs = "/t:Publish /p:PublishProfile=ClickOnce /p:Configuration=$Configuration /v:minimal /nologo"
+if ($InstallUrl) {
+    # URL du manifeste de deploiement servie par le serveur. On grave le fournisseur de
+    # deploiement (InstallUrl) sans toucher a PublishDir (le surcharger reveille le bug MSB3113).
+    # ClickOnce ajoute lui-meme le nom du manifeste a l'URL : on grave le DOSSIER (slash final),
+    # pas le fichier, sinon le nom se retrouve double dans le fournisseur de deploiement.
+    $base = $InstallUrl.TrimEnd('/') + "/"
+    $msbuildArgs += " /p:InstallUrl=$base /p:UpdateEnabled=true /p:UpdateUrl=$base /p:UpdateMode=Foreground /p:UpdateRequired=false"
+    Write-Host "URL de deploiement gravee : ${base}KyWigRemote.Client.application"
+}
 $batch = @"
 @echo off
 call "$vsDevCmd" -arch=x64 -host_arch=x64 -no_logo
