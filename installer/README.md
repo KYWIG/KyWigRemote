@@ -11,6 +11,8 @@ Installeur MSI unique regroupant, pour le **poste serveur** :
 Les postes **clients** n'installent rien manuellement : ils ouvrent une page web servie par le
 serveur et cliquent sur « Installer » (ClickOnce).
 
+> Pour installer et démarrer pas-à-pas, suivre le tutoriel **[MISE-EN-SERVICE.md](MISE-EN-SERVICE.md)**.
+
 ## Construire l'installeur
 
 ```powershell
