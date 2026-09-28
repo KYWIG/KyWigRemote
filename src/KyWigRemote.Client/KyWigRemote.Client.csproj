@@ -32,7 +32,9 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>..\..\assets\brand\kywig.ico</ApplicationIcon>
+    <!-- Icone DANS le projet : pour ClickOnce, un chemin « ..\ » serait grave dans le manifeste
+         et rejete (« fichier d'icone invalide »). Copie depuis assets\ par generate-brand.ps1. -->
+    <ApplicationIcon>kywig.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>
