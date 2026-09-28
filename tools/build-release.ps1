@@ -125,7 +125,8 @@ Write-Host "[5/5] Construction du MSI (WiX)..." -ForegroundColor Green
 $wix = Find-Wix
 $wxs = Join-Path $repoRoot "installer\Product.wxs"
 $ico = Join-Path $repoRoot "assets\brand\kywig.ico"
-& $wix build $wxs -arch x64 -o $msiPath `
+& $wix build $wxs -arch x64 -o $msiPath -ext WixToolset.UI.wixext `
+    -bindpath (Join-Path $repoRoot "installer") `
     -d "StagingDir=$staging" `
     -d "ProductVersion=$Version" `
     -d "IconFile=$ico"

@@ -78,6 +78,10 @@ var userRepository = new SqliteUserRepository(database);
 var passwordHasher = new PasswordHasher();
 var localAuthenticator = new LocalAuthenticator(localAccounts, passwordHasher);
 
+// Amorçage du premier administrateur global depuis le fichier écrit par l'installeur
+// (dossier de l'exécutable), une seule fois : le fichier est supprimé après traitement.
+BootstrapAdminFromFile(localAccounts, passwordHasher);
+
 // Clé de signature des jetons : configurée, sinon générée et persistée (jamais en dur).
 byte[] signingKey = ResolveSigningKey(options.Authentication.Jwt, settingsStore);
 var tokenService = new TokenService(signingKey, options.Authentication.Jwt);
@@ -539,6 +543,84 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+// --- Amorçage du premier administrateur depuis un fichier ---
+// L'installeur écrit « bootstrap.ini » (Username/Password) à côté de l'exécutable. Au premier
+// démarrage, si aucun compte local n'existe, on crée un administrateur global avec ces valeurs,
+// puis on efface et supprime le fichier (il contient un secret). Aucun mot de passe n'est
+// journalisé (règle 2) ni codé en dur (règle 5) : la valeur vient de l'installeur.
+static void BootstrapAdminFromFile(ILocalAccountRepository accounts, PasswordHasher hasher)
+{
+    string path = Path.Combine(AppContext.BaseDirectory, "bootstrap.ini");
+    if (!File.Exists(path))
+    {
+        return;
+    }
+
+    try
+    {
+        if (!accounts.HasAnyAccount())
+        {
+            (string username, string? password) = ParseBootstrapFile(File.ReadAllLines(path));
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                var admin = new LocalAccount
+                {
+                    Username = string.IsNullOrWhiteSpace(username) ? "admin" : username,
+                    Role = UserRole.GlobalAdmin,
+                    PasswordHash = hasher.Hash(password!),
+                };
+                accounts.CreateAccount(admin);
+                Log.Information("Compte administrateur d'amorçage créé (« {User} »).", admin.Username);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Amorçage de l'administrateur depuis le fichier impossible.");
+    }
+    finally
+    {
+        // Suppression systématique du fichier (contient le mot de passe), même en cas d'échec.
+        try
+        {
+            File.WriteAllText(path, string.Empty);
+            File.Delete(path);
+        }
+        catch (IOException) { /* le fichier sera ré-évalué au prochain démarrage */ }
+    }
+}
+
+// Analyse « Username=… » / « Password=… » (les sections [..] et lignes vides/# sont ignorées).
+static (string Username, string? Password) ParseBootstrapFile(string[] lines)
+{
+    string username = string.Empty;
+    string? password = null;
+    foreach (string raw in lines)
+    {
+        string line = raw.Trim();
+        if (line.Length == 0 || line.StartsWith('#') || line.StartsWith('['))
+        {
+            continue;
+        }
+        int eq = line.IndexOf('=');
+        if (eq <= 0)
+        {
+            continue;
+        }
+        string key = line[..eq].Trim();
+        string value = line[(eq + 1)..].Trim();
+        if (key.Equals("Username", StringComparison.OrdinalIgnoreCase))
+        {
+            username = value;
+        }
+        else if (key.Equals("Password", StringComparison.OrdinalIgnoreCase))
+        {
+            password = value;
+        }
+    }
+    return (username, password);
 }
 
 // --- Hébergement de la distribution ClickOnce du client ---

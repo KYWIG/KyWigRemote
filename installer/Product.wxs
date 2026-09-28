@@ -8,7 +8,8 @@
   Le service Windows n'est PAS installe par le MSI : il se pose via le gestionnaire
   (KyWigRemote.ServerManager.exe -> « Installer »), qui gere aussi demarrage/arret.
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="KyWigRemote"
            Manufacturer="KyWig Informatique"
            Version="$(var.ProductVersion)"
@@ -24,6 +25,16 @@
     <Icon Id="AppIcon.ico" SourceFile="$(var.IconFile)" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
     <Property Id="ARPURLINFOABOUT" Value="https://kywig.bzh" />
+
+    <!-- Compte administrateur d'amorçage saisi dans l'assistant. Le mot de passe est masqué
+         (ADMINPASSWORD n'apparaît pas dans les journaux MSI) et écrit dans server\bootstrap.ini,
+         que le serveur lit puis supprime au premier démarrage. -->
+    <Property Id="ADMINUSERNAME" Value="admin" />
+    <Property Id="ADMINPASSWORD" Hidden="yes" Secure="yes" />
+
+    <!-- Interface : choix du dossier d'installation + licence + écran mot de passe (voir UI plus bas). -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
 
     <!-- Arborescence : Program Files\KyWig Informatique\KyWigRemote\{server,admin,web} -->
     <StandardDirectory Id="ProgramFiles64Folder">
@@ -68,11 +79,61 @@
                      Name="installed" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
+    <!-- Fichier d'amorçage du premier administrateur (écrit seulement si un mot de passe est saisi).
+         Le serveur le lit puis le supprime au premier démarrage. -->
+    <Component Id="BootstrapAdmin" Directory="SERVERDIR"
+               Guid="DBB90BFD-2075-40F7-ABB7-3014B4D80C3F" Condition="ADMINPASSWORD">
+      <IniFile Id="BootstrapUser" Action="addLine" Directory="SERVERDIR" Name="bootstrap.ini"
+               Section="BootstrapAdmin" Key="Username" Value="[ADMINUSERNAME]" />
+      <IniFile Id="BootstrapPwd" Action="addLine" Directory="SERVERDIR" Name="bootstrap.ini"
+               Section="BootstrapAdmin" Key="Password" Value="[ADMINPASSWORD]" />
+      <RegistryValue Root="HKMU" Key="Software\KyWig Informatique\KyWigRemote"
+                     Name="bootstrap" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
     <Feature Id="Main" Title="KyWigRemote" Level="1">
       <ComponentGroupRef Id="ServerFiles" />
       <ComponentGroupRef Id="AdminFiles" />
       <ComponentGroupRef Id="WebFiles" />
       <ComponentRef Id="Shortcuts" />
+      <ComponentRef Id="BootstrapAdmin" />
     </Feature>
+
+    <!-- Écran de saisie du compte administrateur, inséré entre le choix du dossier et le résumé. -->
+    <UI>
+      <Dialog Id="AdminPwdDlg" Width="370" Height="270" Title="[ProductName] — Administrateur">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44"
+                 TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="15" Transparent="yes"
+                 NoPrefix="yes" Text="{\WixUI_Font_Title}Compte administrateur" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="340" Height="15" Transparent="yes"
+                 NoPrefix="yes" Text="Definissez l'administrateur global de KyWigRemote." />
+
+        <Control Id="UserLabel" Type="Text" X="25" Y="70" Width="120" Height="13" Text="Identifiant :" />
+        <Control Id="UserEdit" Type="Edit" X="25" Y="84" Width="220" Height="18" Property="ADMINUSERNAME" />
+        <Control Id="PwdLabel" Type="Text" X="25" Y="112" Width="120" Height="13" Text="Mot de passe :" />
+        <Control Id="PwdEdit" Type="Edit" X="25" Y="126" Width="220" Height="18" Property="ADMINPASSWORD" Password="yes" />
+        <Control Id="Hint" Type="Text" X="25" Y="156" Width="320" Height="40" NoPrefix="yes"
+                 Text="Laissez le mot de passe vide pour definir l'administrateur plus tard (amorcage manuel). Ce compte a tous les droits (administrateur global)." />
+
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Precedent">
+          <Publish Event="NewDialog" Value="InstallDirDlg" Condition="1" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Suivant">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Condition="1" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Annuler">
+          <Publish Event="SpawnDialog" Value="CancelDlg" Condition="1" />
+        </Control>
+      </Dialog>
+
+      <!-- Insère AdminPwdDlg entre InstallDirDlg et VerifyReadyDlg (Order élevé pour primer). -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="AdminPwdDlg"
+               Order="10" Condition="WIXUI_INSTALLDIR_VALID = &quot;1&quot;" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="AdminPwdDlg"
+               Order="10" Condition="NOT Installed" />
+    </UI>
   </Package>
 </Wix>
