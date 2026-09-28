@@ -288,6 +288,47 @@ public sealed class ServerClient : IDisposable
         return result?.Deleted ?? 0;
     }
 
+    /// <summary>Récupère la configuration AD (groupes + présence du compte de service).</summary>
+    public async Task<AdConfigView?> GetAdConfigAsync(CancellationToken cancellationToken = default) =>
+        await _http.GetFromJsonAsync<AdConfigView>("/api/admin/ad/config", JsonOptions, cancellationToken);
+
+    /// <summary>Enregistre le compte de service AD (mot de passe chiffré côté serveur).</summary>
+    public async Task SetAdServiceAccountAsync(string username, string password, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "/api/admin/ad/service-account", new SetAdServiceAccountRequest(username, password), JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Teste la connexion à l'annuaire avec le compte de service courant.</summary>
+    public async Task<AdTestResult> TestAdAsync(CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsync("/api/admin/ad/test", content: null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AdTestResult>(JsonOptions, cancellationToken)
+            ?? new AdTestResult(false, "Réponse invalide du serveur.");
+    }
+
+    /// <summary>Lance une synchronisation AD et retourne le bilan. Null si l'annuaire est injoignable (503).</summary>
+    public async Task<AdSyncResult?> SyncAdAsync(CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PostAsync("/api/admin/ad/sync", content: null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+        {
+            return null;
+        }
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AdSyncResult>(JsonOptions, cancellationToken);
+    }
+
+    /// <summary>Liste les utilisateurs AD synchronisés.</summary>
+    public async Task<IReadOnlyList<AdUserSummary>> ListAdUsersAsync(CancellationToken cancellationToken = default)
+    {
+        List<AdUserSummary>? list = await _http.GetFromJsonAsync<List<AdUserSummary>>(
+            "/api/admin/ad/users", JsonOptions, cancellationToken);
+        return list ?? new List<AdUserSummary>();
+    }
+
     public void Dispose() => _http.Dispose();
 }
 

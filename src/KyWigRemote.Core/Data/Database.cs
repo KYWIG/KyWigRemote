@@ -101,6 +101,7 @@ public sealed class Database
         yield return (2, SchemaScript.V2);
         yield return (3, SchemaScript.V3);
         yield return (4, SchemaScript.V4);
+        yield return (5, SchemaScript.V5);
     }
 
     private void EnsureDirectoryExists()

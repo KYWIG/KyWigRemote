@@ -13,6 +13,7 @@ using KyWigRemote.Core.Directory;
 using KyWigRemote.Core.Model;
 using KyWigRemote.Core.Remote;
 using KyWigRemote.Core.Security;
+using KyWigRemote.Server;
 using KyWigRemote.Server.Configuration;
 using KyWigRemote.Server.Contracts;
 using KyWigRemote.Server.Security;
@@ -88,10 +89,22 @@ var tokenService = new TokenService(signingKey, options.Authentication.Jwt);
 
 // Chiffrement des identifiants imposés : clé maître générée et persistée si absente.
 byte[] credentialKey = ResolveCredentialMasterKey(settingsStore);
+var credentialProtector = new CredentialProtector();
 var credentialRepository = new SqliteCredentialRepository(database);
 var personalRepository = new SqlitePersonalCredentialRepository(database);
 var credentialService = new CredentialService(
-    credentialRepository, personalRepository, new CredentialProtector(), credentialKey);
+    credentialRepository, personalRepository, credentialProtector, credentialKey);
+
+// Compte de service AD (identifiant + mot de passe chiffré) et accès à l'annuaire (lecture des
+// groupes, énumération des membres). L'annuaire lit le compte de service courant à chaque appel.
+var adServiceAccountStore = new AdServiceAccountStore(settingsStore, credentialProtector, credentialKey);
+var adDirectory = new StoreBackedAdDirectory(options.Authentication.ActiveDirectory.Domain, adServiceAccountStore);
+var adSyncService = new AdSyncService(adDirectory, userRepository);
+builder.Services.AddSingleton(adServiceAccountStore);
+builder.Services.AddSingleton<IDirectory>(adDirectory);
+builder.Services.AddSingleton(adSyncService);
+// Synchronisation AD planifiée (se désactive elle-même si l'AD ou la planification est off).
+builder.Services.AddHostedService<AdSyncScheduler>();
 
 builder.Services.AddSingleton<IConnectionRepository>(connectionRepository);
 builder.Services.AddSingleton<ILocalAccountRepository>(localAccounts);
@@ -106,7 +119,7 @@ builder.Services.AddSingleton(credentialService);
 
 // Vérificateur de groupes AD (avec cache) si l'AD est activé ; sinon « tout refuser ».
 IGroupChecker groupChecker = options.Authentication.IsEnabled("ActiveDirectory")
-    ? new CachingGroupChecker(new AdGroupChecker(options.Authentication.ActiveDirectory.Domain))
+    ? new CachingGroupChecker(adDirectory)
     : new DenyAllGroupChecker();
 builder.Services.AddSingleton(groupChecker);
 
@@ -531,6 +544,68 @@ globalAdmin.MapPost("/audit/purge",
     WriteAudit(audit, user.Identity?.Name, "AUDIT_PURGE", result: "OK",
         details: $"{deleted} événement(s) antérieur(s) à {request.RetentionDays} jour(s)");
     return Results.Ok(new PurgeAuditResult(deleted));
+});
+
+// --- Configuration Active Directory (Administrateur global) ---
+
+// Vue de la configuration AD (groupes + présence du compte de service). Jamais de mot de passe.
+globalAdmin.MapGet("/ad/config", (KyWigRemoteOptions cfg, AdServiceAccountStore store) =>
+{
+    ActiveDirectoryOptions ad = cfg.Authentication.ActiveDirectory;
+    return Results.Ok(new AdConfigView(
+        cfg.Authentication.IsEnabled("ActiveDirectory"),
+        ad.Domain, ad.UserGroup, ad.ConnectionAdminGroup, ad.AdminGroup,
+        store.Username, store.IsConfigured));
+});
+
+// Enregistre le compte de service AD (mot de passe chiffré côté serveur).
+globalAdmin.MapPost("/ad/service-account",
+    (SetAdServiceAccountRequest request, ClaimsPrincipal user, AdServiceAccountStore store, IAuditRepository audit) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrEmpty(request.Password))
+    {
+        return Results.BadRequest(new { error = "Identifiant et mot de passe du compte de service sont requis." });
+    }
+    store.Save(request.Username, request.Password);
+    WriteAudit(audit, user.Identity?.Name, "AD_CONFIG_CHANGE", details: $"compte de service « {request.Username} »");
+    return Results.NoContent();
+});
+
+// Teste la connexion à l'annuaire avec le compte de service courant.
+globalAdmin.MapPost("/ad/test", (IDirectory directory) =>
+{
+    bool ok = directory.TestConnection();
+    return Results.Ok(new AdTestResult(ok,
+        ok ? "Connexion à l'annuaire réussie."
+           : "Échec : annuaire injoignable, ou compte de service / domaine invalide."));
+});
+
+// Synchronise les utilisateurs des trois groupes AD (import/mise à jour/désactivation).
+globalAdmin.MapPost("/ad/sync",
+    (KyWigRemoteOptions cfg, ClaimsPrincipal user, AdSyncService sync, IAuditRepository audit) =>
+{
+    ActiveDirectoryOptions ad = cfg.Authentication.ActiveDirectory;
+    try
+    {
+        AdSyncOutcome outcome = sync.Synchronize(ad.UserGroup, ad.ConnectionAdminGroup, ad.AdminGroup);
+        WriteAudit(audit, user.Identity?.Name, "AD_SYNC", result: "OK",
+            details: $"{outcome.Imported} import(s), {outcome.Updated} mise(s) à jour, {outcome.Deactivated} désactivé(s)");
+        return Results.Ok(new AdSyncResult(outcome.Imported, outcome.Updated, outcome.Deactivated));
+    }
+    catch (Exception ex) when (ex is not OperationCanceledException)
+    {
+        WriteAudit(audit, user.Identity?.Name, "AD_SYNC", result: "ERROR", details: "annuaire injoignable");
+        return Results.Problem("Synchronisation impossible (annuaire injoignable ou compte de service invalide).",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
+
+// Liste des utilisateurs AD synchronisés.
+globalAdmin.MapGet("/ad/users", (IUserRepository users) =>
+{
+    IEnumerable<AdUserSummary> list = users.ListAdUsers()
+        .Select(u => new AdUserSummary(u.Sid, u.SamAccountName, u.DisplayName, u.Role, u.Active, u.LastSyncedAt));
+    return Results.Ok(list);
 });
 
     app.Run();

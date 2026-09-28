@@ -8,7 +8,7 @@ namespace KyWigRemote.Core.Data;
 internal static class SchemaScript
 {
     /// <summary>Version de schéma produite par ce script (dernière migration incluse).</summary>
-    public const int Version = 4;
+    public const int Version = 5;
 
     /// <summary>DDL de la version 1 : tables du domaine, dans l'ordre des dépendances de clés étrangères.</summary>
     public const string V1 = """
@@ -173,5 +173,16 @@ internal static class SchemaScript
     public const string V4 = """
         ALTER TABLE local_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'User';
         UPDATE local_accounts SET role = 'GlobalAdmin' WHERE is_admin = 1;
+        """;
+
+    /// <summary>
+    /// Migration v5 : utilisateurs AD synchronisés. La table <c>users</c> gagne le profil, la
+    /// source (AD/Local), un indicateur d'activité et la date de dernière synchronisation.
+    /// </summary>
+    public const string V5 = """
+        ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'User';
+        ALTER TABLE users ADD COLUMN source TEXT NOT NULL DEFAULT 'AD';
+        ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE users ADD COLUMN last_synced_at TEXT;
         """;
 }

@@ -184,6 +184,19 @@ public sealed class ActiveDirectoryOptions
 
     /// <summary>Groupe des administrateurs globaux (profil « Administrateur global »).</summary>
     public string AdminGroup { get; set; } = "GG_KyWigRemote_Admins";
+
+    /// <summary>Planification de la synchronisation des utilisateurs AD.</summary>
+    public AdSyncOptions Sync { get; set; } = new();
+}
+
+/// <summary>Planification de la synchronisation des utilisateurs AD (import périodique).</summary>
+public sealed class AdSyncOptions
+{
+    /// <summary>Active la synchronisation automatique planifiée (la synchro manuelle reste possible).</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>Intervalle entre deux synchronisations, en heures (12 par défaut).</summary>
+    public int IntervalHours { get; set; } = 12;
 }
 
 /// <summary>Paramètres Microsoft 365 / Entra ID.</summary>

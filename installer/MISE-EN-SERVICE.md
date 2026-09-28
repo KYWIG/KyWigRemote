@@ -82,6 +82,14 @@ Section `KyWigRemote:Authentication:Providers`. Deux choix :
 
   Le profil découle du groupe le plus privilégié auquel appartient l'utilisateur.
 
+  **Compte de service AD** : pour lire les groupes et **importer** les utilisateurs, le serveur a
+  besoin d'un compte de service. Une fois le serveur démarré, ouvrir la console
+  **« Administration »** (en administrateur global) → bouton **« Active Directory… »** : y saisir
+  l'identifiant + mot de passe d'un compte de service (stocké **chiffré**), puis **« Tester la
+  connexion »**. La **synchronisation** (import des membres des 3 groupes dans la liste) se lance
+  via **« Utilisateurs AD… » → « Synchroniser maintenant »**, ou automatiquement si
+  `ActiveDirectory:Sync:Enabled` est activé (intervalle `IntervalHours`).
+
 - **Comptes locaux applicatifs (simple, pour tester)** — l'outil gère ses propres comptes.
 
   ```json

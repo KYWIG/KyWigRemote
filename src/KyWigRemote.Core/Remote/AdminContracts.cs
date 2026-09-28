@@ -99,3 +99,29 @@ public sealed record CreateEnforcedCredentialRequest(
 /// <summary>Vue d'un identifiant imposé pour l'administration : jamais de secret.</summary>
 public sealed record EnforcedCredentialSummary(
     int Id, string Label, string Username, string? Domain, string? AllowedGroups);
+
+/// <summary>
+/// Configuration Active Directory vue par l'administration. Le mot de passe du compte de
+/// service n'est jamais renvoyé ; seule sa présence est indiquée (<paramref name="ServiceConfigured"/>).
+/// </summary>
+public sealed record AdConfigView(
+    bool Enabled,
+    string Domain,
+    string UserGroup,
+    string ConnectionAdminGroup,
+    string AdminGroup,
+    string? ServiceUsername,
+    bool ServiceConfigured);
+
+/// <summary>Demande d'enregistrement du compte de service AD (le mot de passe est chiffré côté serveur).</summary>
+public sealed record SetAdServiceAccountRequest(string Username, string Password);
+
+/// <summary>Résultat d'un test de connexion à l'annuaire.</summary>
+public sealed record AdTestResult(bool Ok, string Message);
+
+/// <summary>Résultat d'une synchronisation AD : nombres d'utilisateurs importés / mis à jour / désactivés.</summary>
+public sealed record AdSyncResult(int Imported, int Updated, int Deactivated);
+
+/// <summary>Vue d'un utilisateur AD synchronisé (jamais de secret).</summary>
+public sealed record AdUserSummary(
+    string Sid, string SamAccountName, string? DisplayName, UserRole Role, bool Active, DateTimeOffset? LastSyncedAt);

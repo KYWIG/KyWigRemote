@@ -48,15 +48,25 @@ internal sealed class AdminMainForm : Form
         enforced.Click += (_, _) => OpenEnforcedCredentials();
         var auditButton = new ToolStripButton("Journal d'audit…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         auditButton.Click += (_, _) => OpenAudit();
+        var adConfig = new ToolStripButton("Active Directory…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
+        adConfig.Click += (_, _) => OpenAdConfig();
+        var adUsers = new ToolStripButton("Utilisateurs AD…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
+        adUsers.Click += (_, _) => OpenAdUsers();
 
-        // La gestion des comptes et l'audit sont réservées à l'administrateur global ;
+        // La gestion des comptes, de l'AD et l'audit sont réservées à l'administrateur global ;
         // l'administrateur des connexions ne voit que la gestion des connexions.
         var items = new List<ToolStripItem> { refresh };
         if (_isGlobalAdmin) { items.Add(new ToolStripSeparator()); items.Add(create); }
         items.Add(new ToolStripSeparator());
         items.Add(connections);
         items.Add(enforced);
-        if (_isGlobalAdmin) { items.Add(new ToolStripSeparator()); items.Add(auditButton); }
+        if (_isGlobalAdmin)
+        {
+            items.Add(new ToolStripSeparator());
+            items.Add(adConfig);
+            items.Add(adUsers);
+            items.Add(auditButton);
+        }
 
         // Bascule de thème (aligné à droite) : change et redémarre pour appliquer proprement.
         var themeButton = new ToolStripButton(ThemeManager.Mode == AppTheme.Light ? "Thème sombre" : "Thème clair")
@@ -184,6 +194,18 @@ internal sealed class AdminMainForm : Form
     private void OpenAudit()
     {
         using var form = new AuditViewerForm(_server);
+        form.ShowDialog(this);
+    }
+
+    private void OpenAdConfig()
+    {
+        using var form = new AdConfigForm(_server);
+        form.ShowDialog(this);
+    }
+
+    private void OpenAdUsers()
+    {
+        using var form = new AdUsersForm(_server);
         form.ShowDialog(this);
     }
 
