@@ -16,9 +16,12 @@ internal sealed class AdminMainForm : Form
     private readonly ListView _accountsList;
     private readonly ToolStripStatusLabel _statusLabel;
 
+    private readonly bool _isGlobalAdmin;
+
     public AdminMainForm(ServerClient server)
     {
         _server = server ?? throw new ArgumentNullException(nameof(server));
+        _isGlobalAdmin = server.Session?.IsGlobalAdmin ?? false;
 
         Text = "KyWigRemote — Administration";
         Icon = BrandAssets.AppIcon;
@@ -45,15 +48,20 @@ internal sealed class AdminMainForm : Form
         enforced.Click += (_, _) => OpenEnforcedCredentials();
         var auditButton = new ToolStripButton("Journal d'audit…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         auditButton.Click += (_, _) => OpenAudit();
-        toolbar.Items.AddRange(new ToolStripItem[]
-        {
-            refresh, new ToolStripSeparator(), create, new ToolStripSeparator(), connections, enforced,
-            new ToolStripSeparator(), auditButton,
-        });
+
+        // La gestion des comptes et l'audit sont réservées à l'administrateur global ;
+        // l'administrateur des connexions ne voit que la gestion des connexions.
+        var items = new List<ToolStripItem> { refresh };
+        if (_isGlobalAdmin) { items.Add(new ToolStripSeparator()); items.Add(create); }
+        items.Add(new ToolStripSeparator());
+        items.Add(connections);
+        items.Add(enforced);
+        if (_isGlobalAdmin) { items.Add(new ToolStripSeparator()); items.Add(auditButton); }
+        toolbar.Items.AddRange(items.ToArray());
 
         var header = new Label
         {
-            Text = "Comptes locaux",
+            Text = _isGlobalAdmin ? "Comptes locaux" : "Administration des connexions",
             Dock = DockStyle.Top,
             Height = 30,
             TextAlign = ContentAlignment.MiddleLeft,
@@ -72,11 +80,23 @@ internal sealed class AdminMainForm : Form
             BackColor = DarkPalette.PanelBackground,
             ForeColor = DarkPalette.Text,
             HeaderStyle = ColumnHeaderStyle.Nonclickable,
+            Visible = _isGlobalAdmin,
         };
         _accountsList.Columns.Add("Identifiant", 220);
         _accountsList.Columns.Add("Nom affiché", 240);
-        _accountsList.Columns.Add("Admin", 80);
+        _accountsList.Columns.Add("Profil", 160);
         _accountsList.Columns.Add("Désactivé", 100);
+
+        // Pour l'administrateur des connexions : pas de liste de comptes, un rappel d'usage.
+        var connectionAdminHint = new Label
+        {
+            Text = "Utilisez « Connexions… » pour gérer les dossiers et connexions, "
+                 + "et « Identifiants imposés… » pour les comptes de service partagés.",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = DarkPalette.TextMuted,
+            Visible = !_isGlobalAdmin,
+        };
 
         var status = new StatusStrip
         {
@@ -87,12 +107,24 @@ internal sealed class AdminMainForm : Form
         _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = DarkPalette.TextMuted };
         status.Items.Add(_statusLabel);
 
+        Controls.Add(connectionAdminHint);
         Controls.Add(_accountsList);
         Controls.Add(header);
         Controls.Add(toolbar);
         Controls.Add(status);
 
-        Load += async (_, _) => await LoadAccountsAsync();
+        Load += async (_, _) =>
+        {
+            if (_isGlobalAdmin)
+            {
+                await LoadAccountsAsync();
+            }
+            else
+            {
+                string me = _server.Session?.Username ?? "?";
+                _statusLabel.Text = $"Connecté : {me} (Administrateur des connexions) — {_server.BaseAddress}";
+            }
+        };
     }
 
     private async Task LoadAccountsAsync()
@@ -107,14 +139,14 @@ internal sealed class AdminMainForm : Form
             {
                 var item = new ListViewItem(a.Username);
                 item.SubItems.Add(a.DisplayName ?? string.Empty);
-                item.SubItems.Add(a.IsAdmin ? "oui" : string.Empty);
+                item.SubItems.Add(UserRoleChoices.Label(a.Role));
                 item.SubItems.Add(a.Disabled ? "oui" : string.Empty);
                 _accountsList.Items.Add(item);
             }
             _accountsList.EndUpdate();
 
             string me = _server.Session?.Username ?? "?";
-            _statusLabel.Text = $"{accounts.Count} compte(s) — connecté : {me} (admin) — {_server.BaseAddress}";
+            _statusLabel.Text = $"{accounts.Count} compte(s) — connecté : {me} (Administrateur global) — {_server.BaseAddress}";
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {

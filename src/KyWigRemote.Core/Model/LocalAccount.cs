@@ -19,8 +19,8 @@ public sealed class LocalAccount
     /// <summary>Hachage du mot de passe (format PBKDF2). Ne jamais exposer côté client.</summary>
     public string PasswordHash { get; set; } = string.Empty;
 
-    /// <summary>Le compte dispose-t-il des droits d'administration ?</summary>
-    public bool IsAdmin { get; set; }
+    /// <summary>Profil d'accès du compte (Utilisateur par défaut).</summary>
+    public UserRole Role { get; set; } = UserRole.User;
 
     /// <summary>Compte désactivé : refus de connexion sans suppression.</summary>
     public bool Disabled { get; set; }

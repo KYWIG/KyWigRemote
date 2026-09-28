@@ -171,11 +171,18 @@ public sealed class AuthenticationOptions
         Providers.Contains(provider, StringComparer.OrdinalIgnoreCase);
 }
 
-/// <summary>Paramètres Active Directory.</summary>
+/// <summary>Paramètres Active Directory. Les trois groupes correspondent aux trois profils.</summary>
 public sealed class ActiveDirectoryOptions
 {
     public string Domain { get; set; } = string.Empty;
+
+    /// <summary>Groupe des utilisateurs (profil « Utilisateur »).</summary>
     public string UserGroup { get; set; } = "GG_KyWigRemote_Users";
+
+    /// <summary>Groupe des administrateurs des connexions (profil « Administrateur des connexions »).</summary>
+    public string ConnectionAdminGroup { get; set; } = "GG_KyWigRemote_ConnectionAdmins";
+
+    /// <summary>Groupe des administrateurs globaux (profil « Administrateur global »).</summary>
     public string AdminGroup { get; set; } = "GG_KyWigRemote_Admins";
 }
 

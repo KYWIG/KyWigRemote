@@ -296,12 +296,19 @@ public sealed class ServerClient : IDisposable
 /// <param name="ExpiresAt">Date d'expiration du jeton.</param>
 /// <param name="Username">Identifiant de l'utilisateur.</param>
 /// <param name="DisplayName">Nom d'affichage, s'il est connu.</param>
-/// <param name="IsAdmin">L'utilisateur dispose des droits d'administration.</param>
+/// <param name="Role">Profil d'accès de l'utilisateur.</param>
 /// <param name="Provider">Fournisseur ayant validé l'identité.</param>
 public sealed record LoginResult(
     string Token,
     DateTimeOffset ExpiresAt,
     string Username,
     string? DisplayName,
-    bool IsAdmin,
-    string Provider);
+    UserRole Role,
+    string Provider)
+{
+    /// <summary>Administrateur global.</summary>
+    public bool IsGlobalAdmin => Role == UserRole.GlobalAdmin;
+
+    /// <summary>Peut gérer les connexions (Administrateur des connexions ou global).</summary>
+    public bool CanManageConnections => Role >= UserRole.ConnectionAdmin;
+}

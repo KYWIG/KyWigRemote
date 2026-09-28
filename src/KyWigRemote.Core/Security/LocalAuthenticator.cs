@@ -44,6 +44,6 @@ public sealed class LocalAuthenticator
             return null;
         }
 
-        return new AuthenticatedUser(account.Username, account.DisplayName, account.IsAdmin, ProviderName);
+        return new AuthenticatedUser(account.Username, account.DisplayName, account.Role, ProviderName);
     }
 }

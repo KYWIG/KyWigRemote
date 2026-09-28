@@ -26,7 +26,7 @@ public sealed class SqliteLocalAccountRepository : ILocalAccountRepository
         using SqliteConnection connection = _database.OpenConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText =
-            "SELECT id, username, display_name, password_hash, is_admin, disabled " +
+            "SELECT id, username, display_name, password_hash, role, disabled " +
             "FROM local_accounts ORDER BY username COLLATE NOCASE;";
 
         var accounts = new List<LocalAccount>();
@@ -39,7 +39,7 @@ public sealed class SqliteLocalAccountRepository : ILocalAccountRepository
                 Username = reader.GetString(1),
                 DisplayName = reader.IsDBNull(2) ? null : reader.GetString(2),
                 PasswordHash = reader.GetString(3),
-                IsAdmin = reader.GetInt32(4) != 0,
+                Role = ParseRole(reader.GetString(4)),
                 Disabled = reader.GetInt32(5) != 0,
             });
         }
@@ -53,7 +53,7 @@ public sealed class SqliteLocalAccountRepository : ILocalAccountRepository
         using SqliteConnection connection = _database.OpenConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText =
-            "SELECT id, username, display_name, password_hash, is_admin, disabled " +
+            "SELECT id, username, display_name, password_hash, role, disabled " +
             "FROM local_accounts WHERE username = $u COLLATE NOCASE;";
         command.Parameters.AddWithValue("$u", username);
 
@@ -69,7 +69,7 @@ public sealed class SqliteLocalAccountRepository : ILocalAccountRepository
             Username = reader.GetString(1),
             DisplayName = reader.IsDBNull(2) ? null : reader.GetString(2),
             PasswordHash = reader.GetString(3),
-            IsAdmin = reader.GetInt32(4) != 0,
+            Role = ParseRole(reader.GetString(4)),
             Disabled = reader.GetInt32(5) != 0,
         };
     }
@@ -83,12 +83,14 @@ public sealed class SqliteLocalAccountRepository : ILocalAccountRepository
         using SqliteConnection connection = _database.OpenConnection();
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText =
-            "INSERT INTO local_accounts (username, display_name, password_hash, is_admin, disabled, created_at, updated_at) " +
-            "VALUES ($u, $d, $h, $admin, $disabled, $now, $now); SELECT last_insert_rowid();";
+            "INSERT INTO local_accounts (username, display_name, password_hash, role, is_admin, disabled, created_at, updated_at) " +
+            "VALUES ($u, $d, $h, $role, $admin, $disabled, $now, $now); SELECT last_insert_rowid();";
         command.Parameters.AddWithValue("$u", account.Username);
         command.Parameters.AddWithValue("$d", (object?)account.DisplayName ?? DBNull.Value);
         command.Parameters.AddWithValue("$h", account.PasswordHash);
-        command.Parameters.AddWithValue("$admin", account.IsAdmin ? 1 : 0);
+        command.Parameters.AddWithValue("$role", account.Role.ToString());
+        // is_admin conservé synchronisé pour compatibilité, bien qu'il ne soit plus lu.
+        command.Parameters.AddWithValue("$admin", account.Role == UserRole.GlobalAdmin ? 1 : 0);
         command.Parameters.AddWithValue("$disabled", account.Disabled ? 1 : 0);
         command.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
 
@@ -96,4 +98,8 @@ public sealed class SqliteLocalAccountRepository : ILocalAccountRepository
         account.Id = id;
         return id;
     }
+
+    /// <summary>Convertit la valeur stockée en profil ; repli sur Utilisateur si la valeur est inconnue.</summary>
+    private static UserRole ParseRole(string value) =>
+        Enum.TryParse(value, ignoreCase: true, out UserRole role) ? role : UserRole.User;
 }

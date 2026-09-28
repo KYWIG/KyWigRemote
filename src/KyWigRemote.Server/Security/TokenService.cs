@@ -13,8 +13,14 @@ namespace KyWigRemote.Server.Security;
 /// </summary>
 public sealed class TokenService
 {
-    /// <summary>Rôle porté par le jeton d'un administrateur.</summary>
-    public const string AdminRole = "Admin";
+    /// <summary>Nom de rôle « Utilisateur » dans le jeton.</summary>
+    public const string RoleUser = "User";
+
+    /// <summary>Nom de rôle « Administrateur des connexions » dans le jeton.</summary>
+    public const string RoleConnectionAdmin = "ConnectionAdmin";
+
+    /// <summary>Nom de rôle « Administrateur global » dans le jeton.</summary>
+    public const string RoleGlobalAdmin = "GlobalAdmin";
 
     private readonly SigningCredentials _credentials;
     private readonly JwtOptions _options;
@@ -45,10 +51,20 @@ public sealed class TokenService
         {
             claims.Add(new Claim("display_name", user.DisplayName));
         }
-        if (user.IsAdmin)
+
+        // Claims de rôle cumulatifs : un profil supérieur porte aussi les rôles inférieurs,
+        // pour que RequireRole("ConnectionAdmin") soit satisfait par un GlobalAdmin.
+        claims.Add(new Claim(ClaimTypes.Role, RoleUser));
+        if (user.Role >= Core.Model.UserRole.ConnectionAdmin)
         {
-            claims.Add(new Claim(ClaimTypes.Role, AdminRole));
+            claims.Add(new Claim(ClaimTypes.Role, RoleConnectionAdmin));
         }
+        if (user.Role == Core.Model.UserRole.GlobalAdmin)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, RoleGlobalAdmin));
+        }
+        // Rôle exact pour l'affichage côté client.
+        claims.Add(new Claim("role", user.Role.ToString()));
 
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,

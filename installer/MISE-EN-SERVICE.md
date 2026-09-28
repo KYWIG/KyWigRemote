@@ -70,12 +70,17 @@ Section `KyWigRemote:Authentication:Providers`. Deux choix :
   "ActiveDirectory": {
     "Domain": "kywig.ad",
     "UserGroup": "GG_KyWigRemote_Users",
+    "ConnectionAdminGroup": "GG_KyWigRemote_ConnectionAdmins",
     "AdminGroup": "GG_KyWigRemote_Admins"
   }
   ```
 
-  Créer au préalable les deux groupes AD et y placer les techniciens (Users) et les
-  administrateurs (Admins).
+  Créer au préalable les **trois** groupes AD, correspondant aux **trois profils** :
+  - `GG_KyWigRemote_Users` → **Utilisateur** (se connecte aux ressources autorisées) ;
+  - `GG_KyWigRemote_ConnectionAdmins` → **Administrateur des connexions** (gère dossiers/connexions) ;
+  - `GG_KyWigRemote_Admins` → **Administrateur global** (gère tout).
+
+  Le profil découle du groupe le plus privilégié auquel appartient l'utilisateur.
 
 - **Comptes locaux applicatifs (simple, pour tester)** — l'outil gère ses propres comptes.
 

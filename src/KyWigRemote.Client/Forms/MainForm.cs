@@ -206,7 +206,12 @@ internal sealed class MainForm : Form
         };
 
         string identity = _server.Session is { } s
-            ? $"{s.Username}{(s.IsAdmin ? " (admin)" : string.Empty)}"
+            ? $"{s.Username}{s.Role switch
+            {
+                UserRole.GlobalAdmin => " (admin global)",
+                UserRole.ConnectionAdmin => " (admin connexions)",
+                _ => string.Empty,
+            }}"
             : Environment.UserName;
         var user = new ToolStripStatusLabel($"Connecté : {identity}")
         {

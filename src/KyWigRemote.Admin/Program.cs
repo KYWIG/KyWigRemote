@@ -23,10 +23,10 @@ internal static class Program
         }
 
         ServerClient client = dialog.ConnectedClient;
-        if (client.Session is null || !client.Session.IsAdmin)
+        if (client.Session is null || !client.Session.CanManageConnections)
         {
             MessageBox.Show(
-                "Accès refusé. Cette console est réservée aux administrateurs.",
+                "Accès refusé. Cette console est réservée aux administrateurs (des connexions ou globaux).",
                 "KyWigRemote — Administration",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);

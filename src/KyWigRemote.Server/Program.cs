@@ -132,8 +132,10 @@ if (options.Authentication.IsEnabled("ActiveDirectory"))
 
 builder.Services.AddAuthorization(auth =>
 {
-    // Politique « Admin » : réservée aux jetons portant le rôle administrateur.
-    auth.AddPolicy("Admin", policy => policy.RequireRole(TokenService.AdminRole));
+    // Trois profils. Les claims de rôle étant cumulatifs (voir TokenService), la politique
+    // ConnectionAdmin est aussi satisfaite par un GlobalAdmin.
+    auth.AddPolicy("GlobalAdmin", policy => policy.RequireRole(TokenService.RoleGlobalAdmin));
+    auth.AddPolicy("ConnectionAdmin", policy => policy.RequireRole(TokenService.RoleConnectionAdmin));
 });
 
 WebApplication app = builder.Build();
@@ -179,11 +181,11 @@ app.MapPost("/api/auth/bootstrap-admin",
     {
         Username = request.Username,
         DisplayName = request.DisplayName,
-        IsAdmin = true,
+        Role = UserRole.GlobalAdmin,
         PasswordHash = hasher.Hash(request.Password),
     };
     accounts.CreateAccount(account);
-    return Results.Created($"/api/auth/local-accounts/{account.Id}", new { account.Username, account.IsAdmin });
+    return Results.Created($"/api/auth/local-accounts/{account.Id}", new { account.Username, account.Role });
 });
 
 // Connexion par compte local : renvoie un jeton signé + l'identité.
@@ -205,7 +207,7 @@ app.MapPost("/api/auth/login", (LoginRequest request, LocalAuthenticator local, 
         expiresAt,
         user.Username,
         user.DisplayName,
-        user.IsAdmin,
+        role = user.Role,
         user.Provider,
     });
 });
@@ -230,12 +232,18 @@ if (options.Authentication.IsEnabled("ActiveDirectory"))
         string sid = windows.FindFirst(ClaimTypes.PrimarySid)?.Value ?? string.Empty;
 
         ActiveDirectoryOptions ad = cfg.Authentication.ActiveDirectory;
-        bool inUserGroup;
-        bool isAdmin;
+        bool authorized;
+        UserRole role;
         try
         {
-            inUserGroup = groups.IsMemberOf(sam, ad.UserGroup);
-            isAdmin = inUserGroup && groups.IsMemberOf(sam, ad.AdminGroup);
+            // Le profil découle du groupe le plus privilégié auquel l'utilisateur appartient.
+            bool inAdmin = groups.IsMemberOf(sam, ad.AdminGroup);
+            bool inConnAdmin = groups.IsMemberOf(sam, ad.ConnectionAdminGroup);
+            bool inUser = groups.IsMemberOf(sam, ad.UserGroup);
+            authorized = inAdmin || inConnAdmin || inUser;
+            role = inAdmin ? UserRole.GlobalAdmin
+                 : inConnAdmin ? UserRole.ConnectionAdmin
+                 : UserRole.User;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -244,9 +252,9 @@ if (options.Authentication.IsEnabled("ActiveDirectory"))
                 statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (!inUserGroup)
+        if (!authorized)
         {
-            WriteAudit(audit, sam, "LOGIN", result: "DENIED", details: $"hors du groupe {ad.UserGroup}");
+            WriteAudit(audit, sam, "LOGIN", result: "DENIED", details: "hors des groupes KyWigRemote");
             return Results.StatusCode(StatusCodes.Status403Forbidden);
         }
 
@@ -254,9 +262,9 @@ if (options.Authentication.IsEnabled("ActiveDirectory"))
         users.Upsert(new WindowsUser(sid, sam, display, domain)); // E3.5
         WriteAudit(audit, sam, "LOGIN", result: "OK");
 
-        var identity = new AuthenticatedUser(sam, display, isAdmin, "ActiveDirectory");
+        var identity = new AuthenticatedUser(sam, display, role, "ActiveDirectory");
         (string token, DateTimeOffset expiresAt) = tokens.Issue(identity);
-        return Results.Ok(new { token, expiresAt, username = sam, displayName = display, isAdmin, provider = "ActiveDirectory" });
+        return Results.Ok(new { token, expiresAt, username = sam, displayName = display, role, provider = "ActiveDirectory" });
     }).RequireAuthorization(negotiatePolicy);
 }
 
@@ -312,17 +320,20 @@ app.MapPost("/api/audit/session-open",
     return Results.NoContent();
 }).RequireAuthorization();
 
-// --- Administration : réservée aux comptes administrateurs ---
-RouteGroupBuilder admin = app.MapGroup("/api/admin").RequireAuthorization("Admin");
+// --- Administration ---
+// Deux périmètres : la gestion des connexions (Administrateur des connexions ou global) et
+// la gestion globale (comptes, audit, AD — Administrateur global uniquement).
+RouteGroupBuilder connAdmin = app.MapGroup("/api/admin").RequireAuthorization("ConnectionAdmin");
+RouteGroupBuilder globalAdmin = app.MapGroup("/api/admin").RequireAuthorization("GlobalAdmin");
 
-admin.MapGet("/local-accounts", (ILocalAccountRepository accounts) =>
+globalAdmin.MapGet("/local-accounts", (ILocalAccountRepository accounts) =>
 {
     IEnumerable<LocalAccountSummary> list = accounts.ListAccounts()
-        .Select(a => new LocalAccountSummary(a.Id, a.Username, a.DisplayName, a.IsAdmin, a.Disabled));
+        .Select(a => new LocalAccountSummary(a.Id, a.Username, a.DisplayName, a.Role, a.Disabled));
     return Results.Ok(list);
 });
 
-admin.MapPost("/local-accounts",
+globalAdmin.MapPost("/local-accounts",
     (CreateLocalAccountRequest request, ClaimsPrincipal user, ILocalAccountRepository accounts, PasswordHasher hasher, IAuditRepository audit) =>
 {
     if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -338,17 +349,17 @@ admin.MapPost("/local-accounts",
     {
         Username = request.Username,
         DisplayName = request.DisplayName,
-        IsAdmin = request.IsAdmin,
+        Role = request.Role,
         PasswordHash = hasher.Hash(request.Password),
     };
     accounts.CreateAccount(account);
-    WriteAudit(audit, user.Identity?.Name, "ACCOUNT_CREATE", "ACCOUNT", account.Id, details: request.Username);
+    WriteAudit(audit, user.Identity?.Name, "ACCOUNT_CREATE", "ACCOUNT", account.Id, details: $"{request.Username} ({request.Role})");
     return Results.Created($"/api/admin/local-accounts/{account.Id}",
-        new LocalAccountSummary(account.Id, account.Username, account.DisplayName, account.IsAdmin, account.Disabled));
+        new LocalAccountSummary(account.Id, account.Username, account.DisplayName, account.Role, account.Disabled));
 });
 
 // Gestion de l'arborescence (création / suppression de dossiers et connexions).
-admin.MapPost("/folders",
+connAdmin.MapPost("/folders",
     (CreateFolderRequest request, ClaimsPrincipal user, IConnectionRepository connections, IAuditRepository audit) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name))
@@ -362,7 +373,7 @@ admin.MapPost("/folders",
     return Results.Created($"/api/admin/folders/{id}", new CreatedId(id));
 });
 
-admin.MapPost("/connections",
+connAdmin.MapPost("/connections",
     (CreateConnectionRequest request, ClaimsPrincipal user, IConnectionRepository connections, IAuditRepository audit) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Host))
@@ -384,7 +395,7 @@ admin.MapPost("/connections",
     return Results.Created($"/api/admin/connections/{id}", new CreatedId(id));
 });
 
-admin.MapDelete("/folders/{id:int}",
+connAdmin.MapDelete("/folders/{id:int}",
     (int id, ClaimsPrincipal user, IConnectionRepository connections, IAuditRepository audit) =>
 {
     connections.DeleteFolder(id);
@@ -392,7 +403,7 @@ admin.MapDelete("/folders/{id:int}",
     return Results.NoContent();
 });
 
-admin.MapDelete("/connections/{id:int}",
+connAdmin.MapDelete("/connections/{id:int}",
     (int id, ClaimsPrincipal user, IConnectionRepository connections, IAuditRepository audit) =>
 {
     connections.DeleteConnection(id);
@@ -401,14 +412,14 @@ admin.MapDelete("/connections/{id:int}",
 });
 
 // Identifiants imposés (chiffrés au repos). Le secret n'est jamais renvoyé par ces endpoints.
-admin.MapGet("/enforced-credentials", (ICredentialRepository credentials) =>
+connAdmin.MapGet("/enforced-credentials", (ICredentialRepository credentials) =>
 {
     IEnumerable<EnforcedCredentialSummary> list = credentials.ListEnforced()
         .Select(c => new EnforcedCredentialSummary(c.Id, c.Label, c.Username, c.Domain, c.AllowedGroups));
     return Results.Ok(list);
 });
 
-admin.MapPost("/enforced-credentials",
+connAdmin.MapPost("/enforced-credentials",
     (CreateEnforcedCredentialRequest request, ClaimsPrincipal user, CredentialService credentials, IAuditRepository audit) =>
 {
     if (string.IsNullOrWhiteSpace(request.Label)
@@ -460,7 +471,7 @@ app.MapGet("/api/connections/{id:int}/enforced-secret",
     bool authorized;
     try
     {
-        authorized = user.IsInRole(TokenService.AdminRole)
+        authorized = user.IsInRole(TokenService.RoleGlobalAdmin)
             || EnforcedCredentialAuthorizer.IsAllowedByGroups(caller, meta.AllowedGroups, groupChecker);
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
@@ -490,7 +501,7 @@ app.MapGet("/api/connections/{id:int}/enforced-secret",
 }).RequireAuthorization();
 
 // Consultation du journal d'audit (filtres facultatifs : utilisateur, résultat).
-admin.MapGet("/audit", (string? user, string? result, int? limit, IAuditRepository audit) =>
+globalAdmin.MapGet("/audit", (string? user, string? result, int? limit, IAuditRepository audit) =>
 {
     IReadOnlyList<AuditEvent> events = audit.Query(new AuditQuery
     {
@@ -504,7 +515,7 @@ admin.MapGet("/audit", (string? user, string? result, int? limit, IAuditReposito
 });
 
 // Purge du journal d'audit selon une rétention en jours (E9.5). La purge est elle-même tracée.
-admin.MapPost("/audit/purge",
+globalAdmin.MapPost("/audit/purge",
     (PurgeAuditRequest request, ClaimsPrincipal user, IAuditRepository audit) =>
 {
     if (request.RetentionDays < 1)

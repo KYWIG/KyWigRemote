@@ -8,7 +8,7 @@ namespace KyWigRemote.Core.Data;
 internal static class SchemaScript
 {
     /// <summary>Version de schéma produite par ce script (dernière migration incluse).</summary>
-    public const int Version = 3;
+    public const int Version = 4;
 
     /// <summary>DDL de la version 1 : tables du domaine, dans l'ordre des dépendances de clés étrangères.</summary>
     public const string V1 = """
@@ -163,5 +163,15 @@ internal static class SchemaScript
 
         CREATE UNIQUE INDEX idx_personal_owner_conn
             ON personal_credentials(owner, IFNULL(connection_id, -1));
+        """;
+
+    /// <summary>
+    /// Migration v4 : profil d'accès à trois niveaux (User / ConnectionAdmin / GlobalAdmin),
+    /// unifié pour les comptes locaux. La colonne <c>is_admin</c> est conservée (SQLite ne
+    /// supprime pas de colonne aisément) mais n'est plus lue : le profil vient de <c>role</c>.
+    /// </summary>
+    public const string V4 = """
+        ALTER TABLE local_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'User';
+        UPDATE local_accounts SET role = 'GlobalAdmin' WHERE is_admin = 1;
         """;
 }
