@@ -68,7 +68,10 @@ function Get-IconDib([System.Drawing.Bitmap]$bmp) {
         $row = New-Object byte[] $maskStride
         for ($x = 0; $x -lt $w; $x++) {
             $alpha = $pixels[$y * $stride + $x * 4 + 3]
-            if ($alpha -lt 128) { $row[[int]($x / 8)] = $row[[int]($x / 8)] -bor (0x80 -shr ($x % 8)) }
+            if ($alpha -lt 128) {
+                $byteIndex = [int][Math]::Floor($x / 8)
+                $row[$byteIndex] = $row[$byteIndex] -bor (0x80 -shr ($x % 8))
+            }
         }
         $bw.Write($row, 0, $row.Length)
     }
@@ -76,7 +79,12 @@ function Get-IconDib([System.Drawing.Bitmap]$bmp) {
     return ,$ms.ToArray()
 }
 
-$dibs = foreach ($s in $Sizes) { $b = Resize-To $src $s; $d = Get-IconDib $b; $b.Dispose(); ,$d }
+$dibs = New-Object System.Collections.ArrayList
+foreach ($s in $Sizes) {
+    $b = Resize-To $src $s
+    [void]$dibs.Add((Get-IconDib $b))
+    $b.Dispose()
+}
 $src.Dispose()
 
 $fs = [System.IO.File]::Open((Join-Path (Get-Location) $Output), [System.IO.FileMode]::Create)

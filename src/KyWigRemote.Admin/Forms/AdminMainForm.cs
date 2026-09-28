@@ -24,7 +24,7 @@ internal sealed class AdminMainForm : Form
         _isGlobalAdmin = server.Session?.IsGlobalAdmin ?? false;
 
         Text = "KyWigRemote — Administration";
-        Icon = BrandAssets.AppIcon;
+        Icon = BrandAssets.AdminIcon;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(820, 520);
         BackColor = DarkPalette.Background;

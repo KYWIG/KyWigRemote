@@ -11,10 +11,19 @@
     <ProjectReference Include="..\KyWigRemote.Core\KyWigRemote.Core.csproj" />
   </ItemGroup>
 
-  <!-- Icone de marque, partagee par le client, l'administration et le gestionnaire. -->
+  <!-- Icones de marque (une par role), partagees par le client, l'administration et le gestionnaire. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\..\assets\brand\kywig.ico">
-      <LogicalName>KyWigRemote.Shared.UI.kywig.ico</LogicalName>
+    <EmbeddedResource Include="..\..\assets\brand\server-manager.ico">
+      <LogicalName>KyWigRemote.Shared.UI.server-manager.ico</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\assets\brand\admin.ico">
+      <LogicalName>KyWigRemote.Shared.UI.admin.ico</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\assets\brand\login.ico">
+      <LogicalName>KyWigRemote.Shared.UI.login.ico</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\assets\brand\client.ico">
+      <LogicalName>KyWigRemote.Shared.UI.client.ico</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

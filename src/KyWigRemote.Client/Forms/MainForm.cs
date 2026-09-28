@@ -40,7 +40,7 @@ internal sealed class MainForm : Form
         _server = server ?? throw new ArgumentNullException(nameof(server));
 
         Text = "KyWigRemote";
-        Icon = BrandAssets.AppIcon;
+        Icon = BrandAssets.ClientIcon;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(900, 600);
         BackColor = DarkPalette.Background;

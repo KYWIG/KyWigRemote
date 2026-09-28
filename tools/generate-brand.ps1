@@ -129,11 +129,5 @@ try {
 finally { $bw.Dispose(); $fs.Dispose() }
 
 Write-Host "Ecrit : kywig.ico ($((Get-Item $icoPath).Length) octets, $($sizes.Count) tailles DIB)"
-
-# Copie dans le projet client : l'icone de l'application ClickOnce doit etre DANS le projet
-# (un chemin « ..\ » vers assets\ serait grave tel quel dans le manifeste et rejete par ClickOnce).
-$clientIco = Join-Path $repoRoot "src\KyWigRemote.Client\kywig.ico"
-Copy-Item $icoPath $clientIco -Force
-Write-Host "Copie  : src\KyWigRemote.Client\kywig.ico"
-
+Write-Host "Note : le monogramme sert desormais uniquement de favicon web (kywig-256.png)."
 Write-Host "Termine."

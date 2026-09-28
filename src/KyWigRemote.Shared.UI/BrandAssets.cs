@@ -4,23 +4,32 @@ using System.Reflection;
 namespace KyWigRemote.Shared.UI;
 
 /// <summary>
-/// Ressources de marque partagées par le client, l'administration et le gestionnaire de serveur.
-/// L'icône (monogramme KyWigRemote) est embarquée dans cet assembly et chargée une seule fois,
-/// afin que toutes les fenêtres affichent la même identité visuelle.
+/// Icônes de marque embarquées dans cet assembly, partagées par les applications.
+/// Chaque application utilise l'icône correspondant à son rôle (chargée une seule fois).
 /// </summary>
 public static class BrandAssets
 {
-    private const string IconResourceName = "KyWigRemote.Shared.UI.kywig.ico";
+    private static Icon? _serverManager;
+    private static Icon? _admin;
+    private static Icon? _login;
+    private static Icon? _client;
 
-    private static Icon? _appIcon;
+    /// <summary>Icône du gestionnaire de serveur (serveur + engrenage).</summary>
+    public static Icon ServerManagerIcon => _serverManager ??= Load("server-manager");
 
-    /// <summary>Icône de l'application. Repli sur l'icône système si la ressource est absente.</summary>
-    public static Icon AppIcon => _appIcon ??= LoadIcon();
+    /// <summary>Icône de la console d'administration (serveur + outils).</summary>
+    public static Icon AdminIcon => _admin ??= Load("admin");
 
-    private static Icon LoadIcon()
+    /// <summary>Icône des écrans de connexion (utilisateur + clé).</summary>
+    public static Icon LoginIcon => _login ??= Load("login");
+
+    /// <summary>Icône du client de connexion (mallette).</summary>
+    public static Icon ClientIcon => _client ??= Load("client");
+
+    private static Icon Load(string name)
     {
         Assembly assembly = typeof(BrandAssets).Assembly;
-        using Stream? stream = assembly.GetManifestResourceStream(IconResourceName);
+        using Stream? stream = assembly.GetManifestResourceStream($"KyWigRemote.Shared.UI.{name}.ico");
         return stream is not null ? new Icon(stream) : SystemIcons.Application;
     }
 }

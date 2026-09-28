@@ -11,7 +11,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>..\..\assets\brand\kywig.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\assets\brand\admin.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

@@ -10,6 +10,22 @@
     <PackageReference Include="DockPanelSuite.ThemeVS2015" Version="3.1.1" />
   </ItemGroup>
 
+  <!-- Icones de l'arbre des connexions (dossiers + protocoles), chargees dans un ImageList. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\assets\brand\folder-closed.png">
+      <LogicalName>KyWigRemote.Client.folder-closed.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\assets\brand\folder-open.png">
+      <LogicalName>KyWigRemote.Client.folder-open.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\assets\brand\rdp.png">
+      <LogicalName>KyWigRemote.Client.rdp.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\assets\brand\ssh.png">
+      <LogicalName>KyWigRemote.Client.ssh.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup>
     <!--
       Interop ActiveX du contrôle RDP (mstsc), généré par AxImp depuis mstscax.dll de Windows.
@@ -33,8 +49,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Icone DANS le projet : pour ClickOnce, un chemin « ..\ » serait grave dans le manifeste
-         et rejete (« fichier d'icone invalide »). Copie depuis assets\ par generate-brand.ps1. -->
-    <ApplicationIcon>kywig.ico</ApplicationIcon>
+         et rejete (« fichier d'icone invalide »). Copiee depuis assets\brand\client.ico. -->
+    <ApplicationIcon>client.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

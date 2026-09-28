@@ -1,3 +1,7 @@
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Reflection;
 using System.Windows.Forms;
 using KyWigRemote.Shared.UI;
 using KyWigRemote.Core.Model;
@@ -49,7 +53,11 @@ internal sealed class ConnectionsPanel : DockContent
             ShowRootLines = true,
             Indent = 16,
             ItemHeight = 20,
+            ImageList = BuildTreeImages(),
         };
+        // Dossiers : icône ouverte quand déplié, fermée quand replié.
+        _tree.AfterExpand += (_, e) => SetFolderImage(e.Node, expanded: true);
+        _tree.AfterCollapse += (_, e) => SetFolderImage(e.Node, expanded: false);
         _tree.NodeMouseDoubleClick += (_, e) => Activate(e.Node);
         _tree.KeyDown += (_, e) =>
         {
@@ -114,7 +122,12 @@ internal sealed class ConnectionsPanel : DockContent
 
     private static TreeNode? BuildFolderNode(ConnectionFolder folder, string query)
     {
-        var node = new TreeNode(folder.Name) { Tag = folder };
+        var node = new TreeNode(folder.Name)
+        {
+            Tag = folder,
+            ImageKey = FolderClosed,
+            SelectedImageKey = FolderClosed,
+        };
 
         foreach (ConnectionFolder sub in folder.SubFolders)
         {
@@ -129,7 +142,13 @@ internal sealed class ConnectionsPanel : DockContent
         {
             if (MatchesQuery(connection, query))
             {
-                node.Nodes.Add(new TreeNode($"{connection.Name}") { Tag = connection });
+                string key = connection.Protocol == RemoteProtocol.Ssh ? "ssh" : "rdp";
+                node.Nodes.Add(new TreeNode(connection.Name)
+                {
+                    Tag = connection,
+                    ImageKey = key,
+                    SelectedImageKey = key,
+                });
             }
         }
 
@@ -147,5 +166,47 @@ internal sealed class ConnectionsPanel : DockContent
 
         return connection.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
             || connection.Host.Contains(query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private const string FolderClosed = "folder-closed";
+    private const string FolderOpen = "folder-open";
+
+    /// <summary>Bascule l'icône d'un nœud dossier entre « ouvert » et « fermé ».</summary>
+    private static void SetFolderImage(TreeNode? node, bool expanded)
+    {
+        if (node?.Tag is ConnectionFolder)
+        {
+            string key = expanded ? FolderOpen : FolderClosed;
+            node.ImageKey = key;
+            node.SelectedImageKey = key;
+        }
+    }
+
+    /// <summary>
+    /// Construit la liste d'images de l'arbre (dossiers + protocoles) à partir des PNG embarqués,
+    /// redimensionnés proprement en 16×16.
+    /// </summary>
+    private static ImageList BuildTreeImages()
+    {
+        var list = new ImageList { ImageSize = new Size(16, 16), ColorDepth = ColorDepth.Depth32Bit };
+        foreach (string name in new[] { FolderClosed, FolderOpen, "rdp", "ssh" })
+        {
+            using Stream? stream = typeof(ConnectionsPanel).Assembly
+                .GetManifestResourceStream($"KyWigRemote.Client.{name}.png");
+            if (stream is null)
+            {
+                continue;
+            }
+            using var source = new Bitmap(stream);
+            var icon = new Bitmap(16, 16, PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(icon))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.DrawImage(source, 0, 0, 16, 16);
+            }
+            list.Images.Add(name, icon);
+        }
+        return list;
     }
 }

@@ -112,7 +112,7 @@ if ($LASTEXITCODE -ne 0) { throw "Echec de publication ClickOnce." }
 $clickOnceDir = Join-Path $repoRoot "src\KyWigRemote.Client\dist\ClientClickOnce"
 Copy-Item (Join-Path $clickOnceDir "*") $webStage -Recurse -Force
 Copy-Item (Join-Path $repoRoot "installer\web\index.html") $webStage -Force
-Copy-Item (Join-Path $repoRoot "assets\brand\kywig-256.png") $webStage -Force
+Copy-Item (Join-Path $repoRoot "assets\brand\client.png") $webStage -Force
 Write-Host "      Page web prete : $(Split-Path $webStage -Leaf)\index.html"
 
 if ($SkipMsi) {
