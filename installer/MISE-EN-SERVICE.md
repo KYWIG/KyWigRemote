@@ -159,26 +159,36 @@ Depuis le serveur (ou un poste du réseau en remplaçant `localhost` par le nom 
 
 - **Santé** : ouvrir `http://localhost:5080/health` → doit afficher `status: ok` et la liste des
   fournisseurs d'authentification actifs.
-- **Page d'installation** : ouvrir `http://localhost:5080/install` → la page « Installer
-  KyWigRemote » doit s'afficher avec le logo.
+- **Page d'installation** : ouvrir `http://localhost:5080/install` (ou `http://localhost:5080`, qui
+  redirige) → la page « Installer KyWigRemote » doit s'afficher avec le logo.
+- **Manifeste ClickOnce (contrôle essentiel)** : vérifier que le serveur sert un manifeste avec
+  l'URL de déploiement gravée. Dans une PowerShell qui joint le serveur :
+
+  ```powershell
+  (Invoke-WebRequest "http://<serveur>:5080/install/KyWigRemote.Client.application" -UseBasicParsing).Content | Select-String "deploymentProvider"
+  ```
+
+  On doit voir `deploymentProvider codebase="http://<serveur>:5080/install/KyWigRemote.Client.application"`.
+  Si rien ne s'affiche (ancien manifeste sans URL), ou si l'URL ne correspond pas au nom que les
+  clients utilisent, reconstruire avec le bon `-BaseUrl` (§ « Mettre à jour ») puis redéployer
+  **avant** de continuer.
 
 ---
 
 ## 7. Déployer le client sur les postes des techniciens
 
-Sur chaque poste technicien, dans un navigateur :
+L'URL du serveur est **gravée** dans le client à la construction (`-BaseUrl`) : elle doit être
+**joignable depuis tous les postes clients**, car c'est elle que ClickOnce utilise pour télécharger
+l'application (peu importe ce que le technicien tape dans le navigateur).
 
-```
-http://<nom-ou-ip-du-serveur>:5080/install
-```
+Sur chaque poste technicien :
 
-Cliquer **« Installer KyWigRemote »**. Le navigateur télécharge un petit fichier
-`KyWigRemote.Client.application` ; l'ouvrir (double-clic) lance l'installation. Windows (ClickOnce)
-installe le client pour la session de l'utilisateur, avec un raccourci au menu Démarrer. Rien
-d'autre à installer.
-
-> Ne pas déplacer le `.application` ailleurs avant de l'ouvrir : il doit être ouvert tel quel pour
-> que ClickOnce récupère les fichiers depuis le serveur.
+1. Ouvrir dans un navigateur `http://<nom-du-serveur>:5080/install`.
+2. Cliquer **« Installer KyWigRemote »** → le navigateur télécharge `KyWigRemote.Client.application`.
+3. **Ouvrir ce fichier tel quel** (double-clic depuis les téléchargements). **Ne pas le déplacer,
+   copier ni renommer** avant : ClickOnce récupère les fichiers depuis le serveur via l'URL gravée.
+4. Accepter (l'avertissement « éditeur inconnu » est normal, non signé). Un raccourci apparaît au
+   menu Démarrer.
 
 À la première ouverture, le client demande l'**adresse du serveur** (`http://<serveur>:5080`) puis
 les identifiants (compte AD ou compte local selon le mode choisi).
@@ -209,7 +219,8 @@ locaux, arborescence des connexions, identifiants imposés, et journal d'audit.
 ## Mettre à jour plus tard
 
 - **Serveur / admin / gestionnaire** : reconstruire un MSI avec un numéro de version supérieur
-  (`.\tools\build-release.ps1 -Version 1.0.1.0`) puis le réinstaller ; l'ancienne version est
-  remplacée automatiquement (mise à jour majeure).
+  **et l'URL du serveur** (`.\tools\build-release.ps1 -Version 1.0.2.0 -BaseUrl http://<serveur>:5080/install`)
+  puis le réinstaller ; l'ancienne version est remplacée automatiquement (mise à jour majeure).
+  Arrêter le service avant de réinstaller (fichiers verrouillés).
 - **Client** : incrémenter `ApplicationRevision` dans le profil ClickOnce avant de republier, sinon
   les postes ne verront pas la nouvelle version.
