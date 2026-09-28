@@ -110,6 +110,11 @@ dans le profil système. Pour un emplacement maîtrisé et sauvegardable, fixer 
 
 (Créer le dossier `C:\ProgramData\KyWigRemote` et autoriser le compte de service en écriture.)
 
+**Sauvegarde** : `.\tools\backup-db.ps1 -DbPath 'C:\ProgramData\KyWigRemote\kywigremote.db'` copie la
+base (et son journal WAL) dans un sous-dossier horodaté, avec rotation. À planifier (tâche
+Windows) pour une sauvegarde régulière ; pour une cohérence maximale sur base très active, arrêter
+le service le temps de la copie.
+
 ### c) Port et distribution — déjà réglés
 
 `Server:Urls` vaut `http://0.0.0.0:5080` (écoute sur le réseau) et la section `Distribution`

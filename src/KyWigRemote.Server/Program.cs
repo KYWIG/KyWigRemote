@@ -412,6 +412,33 @@ connAdmin.MapPost("/connections",
     return Results.Created($"/api/admin/connections/{id}", new CreatedId(id));
 });
 
+connAdmin.MapPut("/connections/{id:int}",
+    (int id, UpdateConnectionRequest request, ClaimsPrincipal user, IConnectionRepository connections, IAuditRepository audit) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Host))
+    {
+        return Results.BadRequest(new { error = "Le nom et l'hôte de la connexion sont requis." });
+    }
+    RemoteConnection? connection = connections.GetConnection(id);
+    if (connection is null)
+    {
+        return Results.NotFound(new { error = "Connexion introuvable." });
+    }
+
+    connection.Name = request.Name;
+    connection.Protocol = request.Protocol;
+    connection.Host = request.Host;
+    connection.Port = request.Port;
+    connection.Domain = request.Domain;
+    connection.Description = request.Description;
+    connection.CredentialMode = request.CredentialMode;
+    connection.EnforcedCredentialId = request.EnforcedCredentialId;
+    connections.UpdateConnection(connection);
+
+    WriteAudit(audit, user.Identity?.Name, "CONN_UPDATE", "CONNECTION", id, details: request.Name);
+    return Results.NoContent();
+});
+
 connAdmin.MapDelete("/folders/{id:int}",
     (int id, ClaimsPrincipal user, IConnectionRepository connections, IAuditRepository audit) =>
 {

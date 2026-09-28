@@ -34,6 +34,7 @@ internal sealed class ConnectionsAdminForm : Form
         toolbar.Items.Add(new ToolStripSeparator());
         AddButton(toolbar, "Nouveau dossier", async () => await CreateFolderAsync());
         AddButton(toolbar, "Nouvelle connexion", async () => await CreateConnectionAsync());
+        AddButton(toolbar, "Éditer", async () => await EditConnectionAsync());
         toolbar.Items.Add(new ToolStripSeparator());
         AddButton(toolbar, "Supprimer", async () => await DeleteSelectedAsync());
 
@@ -162,6 +163,44 @@ internal sealed class ConnectionsAdminForm : Form
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             Warn("Échec de la création de la connexion.");
+        }
+    }
+
+    private async Task EditConnectionAsync()
+    {
+        if (_tree.SelectedNode?.Tag is not RemoteConnection connection)
+        {
+            Warn("Sélectionnez une connexion à modifier.");
+            return;
+        }
+
+        IReadOnlyList<EnforcedCredentialSummary> enforced;
+        try
+        {
+            enforced = await _server.ListEnforcedCredentialsAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Warn("Impossible de charger les identifiants imposés.");
+            return;
+        }
+
+        string parentName = _tree.SelectedNode.Parent?.Tag is ConnectionFolder parent ? parent.Name : string.Empty;
+        using var dialog = new NewConnectionDialog(parentName, enforced, connection);
+        if (dialog.ShowDialog(this) != DialogResult.OK || dialog.ConnectionName is null)
+        {
+            return;
+        }
+        try
+        {
+            await _server.UpdateConnectionAsync(connection.Id, new UpdateConnectionRequest(
+                dialog.ConnectionName, dialog.Protocol, dialog.Host, dialog.Port,
+                dialog.Domain, dialog.Description, dialog.Mode, dialog.EnforcedCredentialId));
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Warn("Échec de la modification de la connexion.");
         }
     }
 

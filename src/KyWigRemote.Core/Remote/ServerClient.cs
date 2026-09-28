@@ -164,6 +164,14 @@ public sealed class ServerClient : IDisposable
         return created?.Id ?? 0;
     }
 
+    /// <summary>Modifie une connexion existante (réservé aux administrateurs des connexions).</summary>
+    public async Task UpdateConnectionAsync(int id, UpdateConnectionRequest request, CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http.PutAsJsonAsync(
+            $"/api/admin/connections/{id}", request, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     /// <summary>Supprime un dossier (et son contenu en cascade).</summary>
     public async Task DeleteFolderAsync(int id, CancellationToken cancellationToken = default)
     {

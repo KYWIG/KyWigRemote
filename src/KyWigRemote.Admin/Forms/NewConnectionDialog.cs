@@ -29,11 +29,14 @@ internal sealed class NewConnectionDialog : Form
     public CredentialMode Mode { get; private set; } = CredentialMode.Inherited;
     public int? EnforcedCredentialId { get; private set; }
 
-    public NewConnectionDialog(string folderLabel, IReadOnlyList<EnforcedCredentialSummary> enforcedCredentials)
+    public NewConnectionDialog(
+        string folderLabel,
+        IReadOnlyList<EnforcedCredentialSummary> enforcedCredentials,
+        RemoteConnection? existing = null)
     {
         _enforced = enforcedCredentials;
 
-        Text = $"Nouvelle connexion — {folderLabel}";
+        Text = existing is null ? $"Nouvelle connexion — {folderLabel}" : $"Modifier la connexion — {folderLabel}";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MinimizeBox = false;
@@ -94,13 +97,37 @@ internal sealed class NewConnectionDialog : Form
 
         _statusLabel = new Label { Text = string.Empty, ForeColor = Palette.Error, AutoSize = false, Location = new Point(16, 384), Size = new Size(388, 18) };
 
-        var ok = new Button { Text = "Créer", Location = new Point(228, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
+        var ok = new Button { Text = existing is null ? "Créer" : "Enregistrer", Location = new Point(228, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
         ok.Click += (_, _) => Submit();
         var cancel = new Button { Text = "Annuler", Location = new Point(320, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text, DialogResult = DialogResult.Cancel };
 
         AcceptButton = ok;
         CancelButton = cancel;
         Controls.AddRange(new Control[] { _statusLabel, ok, cancel });
+
+        if (existing is not null)
+        {
+            // Pré-remplissage en mode édition. Le protocole est fixé avant le port pour que
+            // le changement automatique de port par défaut n'écrase pas la valeur existante.
+            _nameBox.Text = existing.Name;
+            _protocolBox.SelectedIndex = ProtocolChoices.IndexOf(existing.Protocol);
+            _hostBox.Text = existing.Host;
+            _portBox.Text = existing.Port.ToString();
+            _domainBox.Text = existing.Domain ?? string.Empty;
+            _descriptionBox.Text = existing.Description ?? string.Empty;
+            _modeBox.SelectedIndex = CredentialModeChoices.IndexOf(existing.CredentialMode);
+            if (existing.EnforcedCredentialId is int enforcedId)
+            {
+                for (int i = 0; i < _enforced.Count; i++)
+                {
+                    if (_enforced[i].Id == enforcedId)
+                    {
+                        _enforcedBox.SelectedIndex = i + 1; // +1 : l'index 0 est « (aucun) »
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private static Label Caption(string text, int x, int y) =>

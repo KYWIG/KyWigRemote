@@ -38,6 +38,17 @@ public sealed record CreateConnectionRequest(
     CredentialMode CredentialMode,
     int? EnforcedCredentialId);
 
+/// <summary>Demande de modification d'une connexion existante (le dossier n'est pas changé).</summary>
+public sealed record UpdateConnectionRequest(
+    string Name,
+    RemoteProtocol Protocol,
+    string Host,
+    int Port,
+    string? Domain,
+    string? Description,
+    CredentialMode CredentialMode,
+    int? EnforcedCredentialId);
+
 /// <summary>
 /// Identifiant révélé pour ouvrir une session (mode imposé ou personnel). Contient le secret
 /// en clair : à n'utiliser qu'au moment d'ouvrir la session, puis à lâcher.
