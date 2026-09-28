@@ -23,12 +23,12 @@ internal sealed class EnforcedCredentialsAdminForm : Form
         Text = "KyWigRemote — Identifiants imposés";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(640, 480);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
         ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
 
-        var toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text };
+        var toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, BackColor = Palette.PanelBackground, ForeColor = Palette.Text };
         var refresh = new ToolStripButton("Actualiser") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         refresh.Click += async (_, _) => await LoadAsync();
         var create = new ToolStripButton("Nouvel identifiant") { DisplayStyle = ToolStripItemDisplayStyle.Text };
@@ -38,15 +38,15 @@ internal sealed class EnforcedCredentialsAdminForm : Form
         _list = new ListView
         {
             Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, BorderStyle = BorderStyle.None,
-            BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text, HeaderStyle = ColumnHeaderStyle.Nonclickable,
+            BackColor = Palette.PanelBackground, ForeColor = Palette.Text, HeaderStyle = ColumnHeaderStyle.Nonclickable,
         };
         _list.Columns.Add("Libellé", 200);
         _list.Columns.Add("Utilisateur", 160);
         _list.Columns.Add("Domaine", 120);
         _list.Columns.Add("Groupes autorisés", 140);
 
-        var status = new StatusStrip { BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.TextMuted, SizingGrip = false };
-        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = DarkPalette.TextMuted };
+        var status = new StatusStrip { BackColor = Palette.PanelBackground, ForeColor = Palette.TextMuted, SizingGrip = false };
+        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = Palette.TextMuted };
         status.Items.Add(_statusLabel);
 
         Controls.Add(_list);

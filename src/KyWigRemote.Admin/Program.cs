@@ -15,6 +15,7 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
+        ThemeManager.Load();
 
         using var dialog = new ServerConnectDialog("KyWigRemote — Administration", "http://localhost:5080");
         if (dialog.ShowDialog() != DialogResult.OK || dialog.ConnectedClient is null)

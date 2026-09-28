@@ -24,12 +24,12 @@ internal sealed class ConnectionsAdminForm : Form
         Text = "KyWigRemote — Connexions";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(560, 640);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
         ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
 
-        var toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text };
+        var toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, BackColor = Palette.PanelBackground, ForeColor = Palette.Text };
         AddButton(toolbar, "Actualiser", async () => await LoadAsync());
         toolbar.Items.Add(new ToolStripSeparator());
         AddButton(toolbar, "Nouveau dossier", async () => await CreateFolderAsync());
@@ -40,12 +40,12 @@ internal sealed class ConnectionsAdminForm : Form
         _tree = new TreeView
         {
             Dock = DockStyle.Fill, BorderStyle = BorderStyle.None,
-            BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text,
+            BackColor = Palette.PanelBackground, ForeColor = Palette.Text,
             HideSelection = false, FullRowSelect = true, Indent = 16, ItemHeight = 20,
         };
 
-        var status = new StatusStrip { BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.TextMuted, SizingGrip = false };
-        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = DarkPalette.TextMuted };
+        var status = new StatusStrip { BackColor = Palette.PanelBackground, ForeColor = Palette.TextMuted, SizingGrip = false };
+        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = Palette.TextMuted };
         status.Items.Add(_statusLabel);
 
         Controls.Add(_tree);

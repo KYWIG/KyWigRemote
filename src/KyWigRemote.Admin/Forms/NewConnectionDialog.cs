@@ -39,8 +39,8 @@ internal sealed class NewConnectionDialog : Form
         MinimizeBox = false;
         MaximizeBox = false;
         ClientSize = new Size(420, 452);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
         _nameBox = Field("Nom :", 16);
@@ -49,7 +49,7 @@ internal sealed class NewConnectionDialog : Form
         Controls.Add(Caption("Protocole :", 16, 112));
         _protocolBox = new ComboBox
         {
-            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             FlatStyle = FlatStyle.Flat, Location = new Point(16, 134), Width = 180,
         };
         _protocolBox.Items.AddRange(ProtocolChoices.Labels);
@@ -60,7 +60,7 @@ internal sealed class NewConnectionDialog : Form
         Controls.Add(Caption("Port :", 220, 112));
         _portBox = new TextBox
         {
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             Location = new Point(220, 134), Width = 184, Text = "3389",
         };
         Controls.Add(_portBox);
@@ -71,7 +71,7 @@ internal sealed class NewConnectionDialog : Form
         Controls.Add(Caption("Mode d'identifiants :", 16, 264));
         _modeBox = new ComboBox
         {
-            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             FlatStyle = FlatStyle.Flat, Location = new Point(16, 286), Width = 388,
         };
         _modeBox.Items.AddRange(CredentialModeChoices.Labels);
@@ -81,7 +81,7 @@ internal sealed class NewConnectionDialog : Form
         Controls.Add(Caption("Identifiant imposé (si mode « Imposé ») :", 16, 320));
         _enforcedBox = new ComboBox
         {
-            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             FlatStyle = FlatStyle.Flat, Location = new Point(16, 342), Width = 388,
         };
         _enforcedBox.Items.Add("(aucun)");
@@ -92,11 +92,11 @@ internal sealed class NewConnectionDialog : Form
         _enforcedBox.SelectedIndex = 0;
         Controls.Add(_enforcedBox);
 
-        _statusLabel = new Label { Text = string.Empty, ForeColor = DarkPalette.Error, AutoSize = false, Location = new Point(16, 384), Size = new Size(388, 18) };
+        _statusLabel = new Label { Text = string.Empty, ForeColor = Palette.Error, AutoSize = false, Location = new Point(16, 384), Size = new Size(388, 18) };
 
-        var ok = new Button { Text = "Créer", Location = new Point(228, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        var ok = new Button { Text = "Créer", Location = new Point(228, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
         ok.Click += (_, _) => Submit();
-        var cancel = new Button { Text = "Annuler", Location = new Point(320, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text, DialogResult = DialogResult.Cancel };
+        var cancel = new Button { Text = "Annuler", Location = new Point(320, 412), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text, DialogResult = DialogResult.Cancel };
 
         AcceptButton = ok;
         CancelButton = cancel;
@@ -104,14 +104,14 @@ internal sealed class NewConnectionDialog : Form
     }
 
     private static Label Caption(string text, int x, int y) =>
-        new() { Text = text, ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(x, y) };
+        new() { Text = text, ForeColor = Palette.Text, AutoSize = true, Location = new Point(x, y) };
 
     private TextBox Field(string label, int top)
     {
         Controls.Add(Caption(label, 16, top));
         var box = new TextBox
         {
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             Location = new Point(16, top + 22), Width = 388,
         };
         Controls.Add(box);

@@ -31,8 +31,8 @@ public sealed class ServerConnectDialog : Form
         MinimizeBox = false;
         MaximizeBox = false;
         ClientSize = new Size(420, 250);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
         _urlBox = MakeField("Adresse du serveur :", 20,
@@ -44,7 +44,7 @@ public sealed class ServerConnectDialog : Form
         _statusLabel = new Label
         {
             Text = "Renseignez le serveur et vos identifiants, puis Connecter.",
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
             AutoSize = false,
             Location = new Point(16, 178),
             Size = new Size(388, 24),
@@ -56,10 +56,10 @@ public sealed class ServerConnectDialog : Form
             Location = new Point(228, 208),
             Width = 84,
             FlatStyle = FlatStyle.Flat,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
         };
-        _connectButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        _connectButton.FlatAppearance.BorderColor = Palette.Border;
         _connectButton.Click += async (_, _) => await TryConnectAsync();
 
         var cancelButton = new Button
@@ -69,10 +69,10 @@ public sealed class ServerConnectDialog : Form
             Width = 84,
             DialogResult = DialogResult.Cancel,
             FlatStyle = FlatStyle.Flat,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
         };
-        cancelButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        cancelButton.FlatAppearance.BorderColor = Palette.Border;
 
         var windowsButton = new Button
         {
@@ -80,10 +80,10 @@ public sealed class ServerConnectDialog : Form
             Location = new Point(16, 208),
             Width = 170,
             FlatStyle = FlatStyle.Flat,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
         };
-        windowsButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        windowsButton.FlatAppearance.BorderColor = Palette.Border;
         windowsButton.Click += async (_, _) => await TryWindowsConnectAsync();
 
         AcceptButton = _connectButton;
@@ -102,7 +102,7 @@ public sealed class ServerConnectDialog : Form
         if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed)
             || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
         {
-            SetStatus("Adresse invalide. Attendu : http(s)://serveur:port", DarkPalette.Error);
+            SetStatus("Adresse invalide. Attendu : http(s)://serveur:port", Palette.Error);
             return;
         }
 
@@ -114,7 +114,7 @@ public sealed class ServerConnectDialog : Form
             {
                 client.Dispose();
                 SetBusy(false, string.Empty);
-                SetStatus("Serveur injoignable. Vérifiez l'adresse, qu'il est démarré, et le VPN.", DarkPalette.Error);
+                SetStatus("Serveur injoignable. Vérifiez l'adresse, qu'il est démarré, et le VPN.", Palette.Error);
                 return;
             }
 
@@ -123,7 +123,7 @@ public sealed class ServerConnectDialog : Form
             {
                 client.Dispose();
                 SetBusy(false, string.Empty);
-                SetStatus("Accès refusé : votre compte AD n'est pas dans le groupe autorisé.", DarkPalette.Error);
+                SetStatus("Accès refusé : votre compte AD n'est pas dans le groupe autorisé.", Palette.Error);
                 return;
             }
 
@@ -135,7 +135,7 @@ public sealed class ServerConnectDialog : Form
         {
             client.Dispose();
             SetBusy(false, string.Empty);
-            SetStatus("Échec de la connexion Windows. Le serveur accepte-t-il l'authentification AD ?", DarkPalette.Error);
+            SetStatus("Échec de la connexion Windows. Le serveur accepte-t-il l'authentification AD ?", Palette.Error);
         }
     }
 
@@ -145,7 +145,7 @@ public sealed class ServerConnectDialog : Form
         var caption = new Label
         {
             Text = label,
-            ForeColor = DarkPalette.Text,
+            ForeColor = Palette.Text,
             AutoSize = true,
             Location = new Point(16, top),
         };
@@ -153,8 +153,8 @@ public sealed class ServerConnectDialog : Form
         {
             Text = initialValue,
             BorderStyle = BorderStyle.FixedSingle,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
             Location = new Point(16, top + 22),
             Width = 388,
         };
@@ -169,12 +169,12 @@ public sealed class ServerConnectDialog : Form
         if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed)
             || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
         {
-            SetStatus("Adresse invalide. Attendu : http(s)://serveur:port", DarkPalette.Error);
+            SetStatus("Adresse invalide. Attendu : http(s)://serveur:port", Palette.Error);
             return;
         }
         if (string.IsNullOrWhiteSpace(_userBox.Text) || _passwordBox.TextLength == 0)
         {
-            SetStatus("Utilisateur et mot de passe requis.", DarkPalette.Error);
+            SetStatus("Utilisateur et mot de passe requis.", Palette.Error);
             return;
         }
 
@@ -187,7 +187,7 @@ public sealed class ServerConnectDialog : Form
             {
                 client.Dispose();
                 SetBusy(false, string.Empty);
-                SetStatus("Serveur injoignable. Vérifiez l'adresse, qu'il est démarré, et le VPN.", DarkPalette.Error);
+                SetStatus("Serveur injoignable. Vérifiez l'adresse, qu'il est démarré, et le VPN.", Palette.Error);
                 return;
             }
 
@@ -196,7 +196,7 @@ public sealed class ServerConnectDialog : Form
             {
                 client.Dispose();
                 SetBusy(false, string.Empty);
-                SetStatus("Identifiant ou mot de passe incorrect.", DarkPalette.Error);
+                SetStatus("Identifiant ou mot de passe incorrect.", Palette.Error);
                 return;
             }
 
@@ -208,7 +208,7 @@ public sealed class ServerConnectDialog : Form
         {
             client.Dispose();
             SetBusy(false, string.Empty);
-            SetStatus("Échec de connexion au serveur. Vérifiez l'adresse et le réseau.", DarkPalette.Error);
+            SetStatus("Échec de connexion au serveur. Vérifiez l'adresse et le réseau.", Palette.Error);
         }
     }
 
@@ -220,7 +220,7 @@ public sealed class ServerConnectDialog : Form
         _passwordBox.Enabled = !busy;
         if (!string.IsNullOrEmpty(message))
         {
-            SetStatus(message, DarkPalette.TextMuted);
+            SetStatus(message, Palette.TextMuted);
         }
     }
 

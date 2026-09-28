@@ -25,42 +25,42 @@ internal sealed class AuditViewerForm : Form
         Text = "KyWigRemote — Journal d'audit";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(900, 560);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Consolas", 9f);
 
-        var filterBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = DarkPalette.PanelBackground };
-        filterBar.Controls.Add(new Label { Text = "Utilisateur :", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(10, 12) });
-        _userFilter = new TextBox { Location = new Point(90, 9), Width = 140, BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        var filterBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Palette.PanelBackground };
+        filterBar.Controls.Add(new Label { Text = "Utilisateur :", ForeColor = Palette.Text, AutoSize = true, Location = new Point(10, 12) });
+        _userFilter = new TextBox { Location = new Point(90, 9), Width = 140, BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
         filterBar.Controls.Add(_userFilter);
-        filterBar.Controls.Add(new Label { Text = "Résultat :", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(246, 12) });
-        _resultFilter = new ComboBox { Location = new Point(316, 9), Width = 110, DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        filterBar.Controls.Add(new Label { Text = "Résultat :", ForeColor = Palette.Text, AutoSize = true, Location = new Point(246, 12) });
+        _resultFilter = new ComboBox { Location = new Point(316, 9), Width = 110, DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
         _resultFilter.Items.AddRange(new object[] { "(tous)", "OK", "DENIED", "ERROR" });
         _resultFilter.SelectedIndex = 0;
         filterBar.Controls.Add(_resultFilter);
-        var apply = new Button { Text = "Filtrer", Location = new Point(440, 8), Width = 90, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
-        apply.FlatAppearance.BorderColor = DarkPalette.Border;
+        var apply = new Button { Text = "Filtrer", Location = new Point(440, 8), Width = 90, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
+        apply.FlatAppearance.BorderColor = Palette.Border;
         apply.Click += async (_, _) => await LoadAsync();
         filterBar.Controls.Add(apply);
 
         // Purge par rétention (E9.5) : supprime les événements plus vieux que N jours.
-        filterBar.Controls.Add(new Label { Text = "Purger >", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(600, 12) });
+        filterBar.Controls.Add(new Label { Text = "Purger >", ForeColor = Palette.Text, AutoSize = true, Location = new Point(600, 12) });
         _retentionDays = new NumericUpDown
         {
             Location = new Point(668, 9), Width = 60, Minimum = 1, Maximum = 3650, Value = 90,
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
         };
         filterBar.Controls.Add(_retentionDays);
-        filterBar.Controls.Add(new Label { Text = "jours", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(732, 12) });
-        var purge = new Button { Text = "Purger", Location = new Point(778, 8), Width = 90, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
-        purge.FlatAppearance.BorderColor = DarkPalette.Border;
+        filterBar.Controls.Add(new Label { Text = "jours", ForeColor = Palette.Text, AutoSize = true, Location = new Point(732, 12) });
+        var purge = new Button { Text = "Purger", Location = new Point(778, 8), Width = 90, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
+        purge.FlatAppearance.BorderColor = Palette.Border;
         purge.Click += async (_, _) => await PurgeAsync();
         filterBar.Controls.Add(purge);
 
         _list = new ListView
         {
             Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, BorderStyle = BorderStyle.None,
-            BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text, HeaderStyle = ColumnHeaderStyle.Nonclickable,
+            BackColor = Palette.PanelBackground, ForeColor = Palette.Text, HeaderStyle = ColumnHeaderStyle.Nonclickable,
         };
         _list.Columns.Add("Date (UTC)", 160);
         _list.Columns.Add("Utilisateur", 120);
@@ -70,8 +70,8 @@ internal sealed class AuditViewerForm : Form
         _list.Columns.Add("Résultat", 80);
         _list.Columns.Add("Détail", 150);
 
-        var status = new StatusStrip { BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.TextMuted, SizingGrip = false };
-        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = DarkPalette.TextMuted };
+        var status = new StatusStrip { BackColor = Palette.PanelBackground, ForeColor = Palette.TextMuted, SizingGrip = false };
+        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = Palette.TextMuted };
         status.Items.Add(_statusLabel);
 
         Controls.Add(_list);

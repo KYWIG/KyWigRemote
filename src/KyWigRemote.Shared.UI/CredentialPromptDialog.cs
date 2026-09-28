@@ -37,23 +37,23 @@ public sealed class CredentialPromptDialog : Form
         MinimizeBox = false;
         MaximizeBox = false;
         ClientSize = new Size(380, allowRemember ? 220 : 170);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
-        Controls.Add(new Label { Text = "Utilisateur", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, 18) });
+        Controls.Add(new Label { Text = "Utilisateur", ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 18) });
         _userBox = new TextBox
         {
             Text = defaultUsername ?? string.Empty,
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             Location = new Point(16, 40), Width = 348,
         };
 
-        Controls.Add(new Label { Text = "Mot de passe", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, 72) });
+        Controls.Add(new Label { Text = "Mot de passe", ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 72) });
         _passwordBox = new TextBox
         {
             UseSystemPasswordChar = true,
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             Location = new Point(16, 94), Width = 348,
         };
 
@@ -63,14 +63,14 @@ public sealed class CredentialPromptDialog : Form
         int buttonsTop;
         if (allowRemember)
         {
-            _rememberBox = new CheckBox { Text = "Retenir pour cette connexion", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, 128), Checked = true };
-            _rememberGlobalBox = new CheckBox { Text = "Retenir pour toutes mes connexions", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, 152) };
+            _rememberBox = new CheckBox { Text = "Retenir pour cette connexion", ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 128), Checked = true };
+            _rememberGlobalBox = new CheckBox { Text = "Retenir pour toutes mes connexions", ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 152) };
             Controls.Add(_rememberBox);
             Controls.Add(_rememberGlobalBox);
             Controls.Add(new Label
             {
                 Text = "Chiffré côté serveur, associé à votre compte.",
-                ForeColor = DarkPalette.TextMuted, AutoSize = true, Location = new Point(16, 178),
+                ForeColor = Palette.TextMuted, AutoSize = true, Location = new Point(16, 178),
             });
             buttonsTop = 186;
         }
@@ -79,14 +79,14 @@ public sealed class CredentialPromptDialog : Form
             Controls.Add(new Label
             {
                 Text = "Rien ne sera conservé : saisie pour cette session uniquement.",
-                ForeColor = DarkPalette.TextMuted, AutoSize = true, Location = new Point(16, 126),
+                ForeColor = Palette.TextMuted, AutoSize = true, Location = new Point(16, 126),
             });
             buttonsTop = 136;
         }
 
-        var ok = new Button { Text = "Connecter", Location = new Point(188, buttonsTop), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        var ok = new Button { Text = "Connecter", Location = new Point(188, buttonsTop), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
         ok.Click += (_, _) => Submit();
-        var cancel = new Button { Text = "Annuler", Location = new Point(280, buttonsTop), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text, DialogResult = DialogResult.Cancel };
+        var cancel = new Button { Text = "Annuler", Location = new Point(280, buttonsTop), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text, DialogResult = DialogResult.Cancel };
 
         AcceptButton = ok;
         CancelButton = cancel;

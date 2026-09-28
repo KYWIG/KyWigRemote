@@ -18,7 +18,7 @@ internal sealed class PropertiesPanel : DockContent
     {
         Text = "Propriétés";
         DockAreas = DockAreas.DockLeft | DockAreas.DockRight | DockAreas.Float;
-        BackColor = DarkPalette.PanelBackground;
+        BackColor = Palette.PanelBackground;
 
         _list = new ListView
         {
@@ -28,8 +28,8 @@ internal sealed class PropertiesPanel : DockContent
             GridLines = false,
             HeaderStyle = ColumnHeaderStyle.Nonclickable,
             BorderStyle = BorderStyle.None,
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.Text,
             MultiSelect = false,
         };
         _list.Columns.Add("Propriété", 90);

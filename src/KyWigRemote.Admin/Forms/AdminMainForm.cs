@@ -27,16 +27,16 @@ internal sealed class AdminMainForm : Form
         Icon = BrandAssets.AdminIcon;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(820, 520);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
         ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
 
         var toolbar = new ToolStrip
         {
             GripStyle = ToolStripGripStyle.Hidden,
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.Text,
         };
         var refresh = new ToolStripButton("Actualiser") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         refresh.Click += async (_, _) => await LoadAccountsAsync();
@@ -57,6 +57,19 @@ internal sealed class AdminMainForm : Form
         items.Add(connections);
         items.Add(enforced);
         if (_isGlobalAdmin) { items.Add(new ToolStripSeparator()); items.Add(auditButton); }
+
+        // Bascule de thème (aligné à droite) : change et redémarre pour appliquer proprement.
+        var themeButton = new ToolStripButton(ThemeManager.Mode == AppTheme.Light ? "Thème sombre" : "Thème clair")
+        {
+            DisplayStyle = ToolStripItemDisplayStyle.Text,
+            Alignment = ToolStripItemAlignment.Right,
+        };
+        themeButton.Click += (_, _) =>
+        {
+            ThemeManager.SetMode(ThemeManager.Mode == AppTheme.Light ? AppTheme.Dark : AppTheme.Light);
+            Application.Restart();
+        };
+        items.Add(themeButton);
         toolbar.Items.AddRange(items.ToArray());
 
         var header = new Label
@@ -66,7 +79,7 @@ internal sealed class AdminMainForm : Form
             Height = 30,
             TextAlign = ContentAlignment.MiddleLeft,
             Padding = new Padding(10, 0, 0, 0),
-            ForeColor = DarkPalette.Text,
+            ForeColor = Palette.Text,
             Font = new Font("Segoe UI Semibold", 9.5f),
         };
 
@@ -77,8 +90,8 @@ internal sealed class AdminMainForm : Form
             FullRowSelect = true,
             GridLines = false,
             BorderStyle = BorderStyle.None,
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.Text,
             HeaderStyle = ColumnHeaderStyle.Nonclickable,
             Visible = _isGlobalAdmin,
         };
@@ -94,17 +107,17 @@ internal sealed class AdminMainForm : Form
                  + "et « Identifiants imposés… » pour les comptes de service partagés.",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
             Visible = !_isGlobalAdmin,
         };
 
         var status = new StatusStrip
         {
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.TextMuted,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.TextMuted,
             SizingGrip = false,
         };
-        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = DarkPalette.TextMuted };
+        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = Palette.TextMuted };
         status.Items.Add(_statusLabel);
 
         Controls.Add(connectionAdminHint);

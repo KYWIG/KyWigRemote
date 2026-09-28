@@ -26,35 +26,35 @@ internal sealed class NewFolderDialog : Form
         MinimizeBox = false;
         MaximizeBox = false;
         ClientSize = new Size(400, 210);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
         var parent = new Label
         {
             Text = $"Emplacement : {parentLabel}",
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
             AutoSize = true,
             Location = new Point(16, 16),
         };
 
-        var nameCaption = new Label { Text = "Nom :", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, 44) };
+        var nameCaption = new Label { Text = "Nom :", ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 44) };
         _nameBox = new TextBox
         {
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             Location = new Point(16, 66), Width = 368,
         };
 
-        var modeCaption = new Label { Text = "Mode d'identifiants :", ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, 100) };
+        var modeCaption = new Label { Text = "Mode d'identifiants :", ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 100) };
         _modeBox = new ComboBox
         {
-            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             FlatStyle = FlatStyle.Flat, Location = new Point(16, 122), Width = 200,
         };
         _modeBox.Items.AddRange(CredentialModeChoices.Labels);
         _modeBox.SelectedIndex = CredentialModeChoices.IndexOf(CredentialMode.Inherited);
 
-        _statusLabel = new Label { Text = string.Empty, ForeColor = DarkPalette.Error, AutoSize = false, Location = new Point(16, 152), Size = new Size(368, 20) };
+        _statusLabel = new Label { Text = string.Empty, ForeColor = Palette.Error, AutoSize = false, Location = new Point(16, 152), Size = new Size(368, 20) };
 
         var ok = MakeButton("Créer", 208);
         ok.Click += (_, _) => Submit();
@@ -69,7 +69,7 @@ internal sealed class NewFolderDialog : Form
     private Button MakeButton(string text, int x) => new()
     {
         Text = text, Location = new Point(x, 176), Width = 84, FlatStyle = FlatStyle.Flat,
-        BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+        BackColor = Palette.InputBackground, ForeColor = Palette.Text,
     };
 
     private void Submit()

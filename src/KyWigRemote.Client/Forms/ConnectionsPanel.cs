@@ -29,14 +29,14 @@ internal sealed class ConnectionsPanel : DockContent
     {
         Text = "Connexions";
         DockAreas = DockAreas.DockLeft | DockAreas.DockRight | DockAreas.Float;
-        BackColor = DarkPalette.PanelBackground;
+        BackColor = Palette.PanelBackground;
 
         _search = new TextBox
         {
             Dock = DockStyle.Top,
             BorderStyle = BorderStyle.FixedSingle,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
             Margin = new Padding(0),
         };
         _search.TextChanged += (_, _) => RebuildTree();
@@ -45,9 +45,9 @@ internal sealed class ConnectionsPanel : DockContent
         {
             Dock = DockStyle.Fill,
             BorderStyle = BorderStyle.None,
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.Text,
-            LineColor = DarkPalette.Border,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.Text,
+            LineColor = Palette.Border,
             HideSelection = false,
             FullRowSelect = true,
             ShowRootLines = true,

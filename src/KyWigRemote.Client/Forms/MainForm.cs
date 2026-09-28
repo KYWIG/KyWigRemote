@@ -43,8 +43,8 @@ internal sealed class MainForm : Form
         Icon = BrandAssets.ClientIcon;
         WindowState = FormWindowState.Maximized;
         MinimumSize = new Size(900, 600);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
         // Rendu sombre des barres (menu, outils, état).
@@ -53,7 +53,7 @@ internal sealed class MainForm : Form
         _dockPanel = new DockPanel
         {
             Dock = DockStyle.Fill,
-            Theme = new VS2015DarkTheme(),
+            Theme = ThemeManager.Mode == AppTheme.Light ? new VS2015LightTheme() : new VS2015DarkTheme(),
             DocumentStyle = DocumentStyle.DockingWindow,
         };
 
@@ -120,8 +120,8 @@ internal sealed class MainForm : Form
     {
         var menu = new MenuStrip
         {
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.Text,
         };
 
         var fichier = new ToolStripMenuItem("&Fichier");
@@ -140,6 +140,17 @@ internal sealed class MainForm : Form
             ShortcutKeys = Keys.F11,
         };
         affichage.DropDownItems.Add(fullscreen);
+        affichage.DropDownItems.Add(new ToolStripSeparator());
+        var theme = new ToolStripMenuItem("&Thème");
+        theme.DropDownItems.Add(new ToolStripMenuItem("Sombre", null, (_, _) => ApplyTheme(AppTheme.Dark))
+        {
+            Checked = ThemeManager.Mode == AppTheme.Dark,
+        });
+        theme.DropDownItems.Add(new ToolStripMenuItem("Clair", null, (_, _) => ApplyTheme(AppTheme.Light))
+        {
+            Checked = ThemeManager.Mode == AppTheme.Light,
+        });
+        affichage.DropDownItems.Add(theme);
 
         var outils = new ToolStripMenuItem("&Outils");
         outils.DropDownItems.Add(new ToolStripMenuItem("Mes &identifiants…", null, (_, _) => OpenMyCredentials()));
@@ -156,8 +167,8 @@ internal sealed class MainForm : Form
         var toolbar = new ToolStrip
         {
             GripStyle = ToolStripGripStyle.Hidden,
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.Text,
             ImageScalingSize = new Size(16, 16),
         };
 
@@ -200,8 +211,8 @@ internal sealed class MainForm : Form
     {
         var status = new StatusStrip
         {
-            BackColor = DarkPalette.PanelBackground,
-            ForeColor = DarkPalette.TextMuted,
+            BackColor = Palette.PanelBackground,
+            ForeColor = Palette.TextMuted,
             SizingGrip = false,
         };
 
@@ -215,17 +226,17 @@ internal sealed class MainForm : Form
             : Environment.UserName;
         var user = new ToolStripStatusLabel($"Connecté : {identity}")
         {
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
         };
         sessionCount = new ToolStripStatusLabel("0 session ouverte")
         {
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
             Spring = true,
             TextAlign = ContentAlignment.MiddleCenter,
         };
         var source = new ToolStripStatusLabel($"Serveur : {_server.BaseAddress}")
         {
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
         };
 
         status.Items.AddRange(new ToolStripItem[] { user, sessionCount, source });
@@ -392,6 +403,20 @@ internal sealed class MainForm : Form
             "À propos de KyWigRemote",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
+    }
+
+    /// <summary>
+    /// Change le thème (clair/sombre) et redémarre l'application pour l'appliquer proprement
+    /// (le rendu du docking ne se recolore pas de façon fiable à chaud).
+    /// </summary>
+    private void ApplyTheme(AppTheme mode)
+    {
+        if (ThemeManager.Mode == mode)
+        {
+            return;
+        }
+        ThemeManager.SetMode(mode);
+        Application.Restart();
     }
 
     /// <summary>Raccourcis globaux : Ctrl+F (recherche), Ctrl+W (fermer l'onglet actif).</summary>

@@ -23,12 +23,12 @@ internal sealed class MyCredentialsDialog : Form
         Text = "KyWigRemote — Mes identifiants";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(560, 420);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
         ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
 
-        var toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text, Dock = DockStyle.Top };
+        var toolbar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, BackColor = Palette.PanelBackground, ForeColor = Palette.Text, Dock = DockStyle.Top };
         var refresh = new ToolStripButton("Actualiser") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         refresh.Click += async (_, _) => await LoadAsync();
         toolbar.Items.Add(refresh);
@@ -36,25 +36,25 @@ internal sealed class MyCredentialsDialog : Form
         _list = new ListView
         {
             Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, MultiSelect = false,
-            BorderStyle = BorderStyle.None, BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.None, BackColor = Palette.PanelBackground, ForeColor = Palette.Text,
             HeaderStyle = ColumnHeaderStyle.Nonclickable,
         };
         _list.Columns.Add("Portée", 260);
         _list.Columns.Add("Utilisateur", 160);
         _list.Columns.Add("Domaine", 110);
 
-        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = DarkPalette.Background };
+        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Palette.Background };
         _deleteButton = new Button
         {
             Text = "Supprimer", Location = new Point(8, 8), Width = 100, FlatStyle = FlatStyle.Flat,
-            BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text, Enabled = false,
+            BackColor = Palette.InputBackground, ForeColor = Palette.Text, Enabled = false,
         };
-        _deleteButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        _deleteButton.FlatAppearance.BorderColor = Palette.Border;
         _deleteButton.Click += async (_, _) => await DeleteSelectedAsync();
         bottom.Controls.Add(_deleteButton);
 
-        var status = new StatusStrip { BackColor = DarkPalette.PanelBackground, ForeColor = DarkPalette.TextMuted, SizingGrip = false };
-        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = DarkPalette.TextMuted };
+        var status = new StatusStrip { BackColor = Palette.PanelBackground, ForeColor = Palette.TextMuted, SizingGrip = false };
+        _statusLabel = new ToolStripStatusLabel("Chargement…") { ForeColor = Palette.TextMuted };
         status.Items.Add(_statusLabel);
 
         _list.SelectedIndexChanged += (_, _) => _deleteButton.Enabled = _list.SelectedItems.Count > 0;

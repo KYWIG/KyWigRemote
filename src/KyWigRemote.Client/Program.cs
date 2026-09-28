@@ -16,6 +16,9 @@ internal static class Program
         // Prépare la configuration WinForms (DPI, police par défaut).
         ApplicationConfiguration.Initialize();
 
+        // Charge le thème (clair/sombre) avant toute fenêtre, pour qu'il s'applique dès la construction.
+        ThemeManager.Load();
+
         ClientSettings settings = ClientSettings.Load();
 
         using var dialog = new ServerConnectDialog("KyWigRemote — connexion au serveur", settings.LastServerUrl);

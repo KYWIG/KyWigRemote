@@ -34,7 +34,7 @@ internal sealed class SessionPanel : DockContent
 
         Text = connection.Name;
         DockAreas = DockAreas.Document;
-        BackColor = DarkPalette.Background;
+        BackColor = Palette.Background;
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -109,7 +109,7 @@ internal sealed class SessionPanel : DockContent
         {
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
             Font = new Font("Segoe UI", 10f),
             Text = text,
         };

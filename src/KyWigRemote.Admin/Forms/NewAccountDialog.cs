@@ -26,8 +26,8 @@ internal sealed class NewAccountDialog : Form
         MinimizeBox = false;
         MaximizeBox = false;
         ClientSize = new Size(400, 320);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
         _userBox = MakeField("Identifiant :", 20, string.Empty);
@@ -38,7 +38,7 @@ internal sealed class NewAccountDialog : Form
         var roleCaption = new Label
         {
             Text = "Profil :",
-            ForeColor = DarkPalette.Text,
+            ForeColor = Palette.Text,
             AutoSize = true,
             Location = new Point(16, 178),
         };
@@ -47,8 +47,8 @@ internal sealed class NewAccountDialog : Form
             DropDownStyle = ComboBoxStyle.DropDownList,
             Location = new Point(16, 200),
             Width = 368,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
             FlatStyle = FlatStyle.Flat,
         };
         _roleBox.Items.AddRange(UserRoleChoices.Labels);
@@ -58,7 +58,7 @@ internal sealed class NewAccountDialog : Form
         _statusLabel = new Label
         {
             Text = string.Empty,
-            ForeColor = DarkPalette.Error,
+            ForeColor = Palette.Error,
             AutoSize = false,
             Location = new Point(16, 244),
             Size = new Size(368, 20),
@@ -70,10 +70,10 @@ internal sealed class NewAccountDialog : Form
             Location = new Point(208, 276),
             Width = 84,
             FlatStyle = FlatStyle.Flat,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
         };
-        okButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        okButton.FlatAppearance.BorderColor = Palette.Border;
         okButton.Click += (_, _) => Submit();
 
         var cancelButton = new Button
@@ -83,10 +83,10 @@ internal sealed class NewAccountDialog : Form
             Width = 84,
             DialogResult = DialogResult.Cancel,
             FlatStyle = FlatStyle.Flat,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
         };
-        cancelButton.FlatAppearance.BorderColor = DarkPalette.Border;
+        cancelButton.FlatAppearance.BorderColor = Palette.Border;
 
         AcceptButton = okButton;
         CancelButton = cancelButton;
@@ -102,7 +102,7 @@ internal sealed class NewAccountDialog : Form
         var caption = new Label
         {
             Text = label,
-            ForeColor = DarkPalette.Text,
+            ForeColor = Palette.Text,
             AutoSize = true,
             Location = new Point(16, top),
         };
@@ -110,8 +110,8 @@ internal sealed class NewAccountDialog : Form
         {
             Text = initialValue,
             BorderStyle = BorderStyle.FixedSingle,
-            BackColor = DarkPalette.InputBackground,
-            ForeColor = DarkPalette.Text,
+            BackColor = Palette.InputBackground,
+            ForeColor = Palette.Text,
             Location = new Point(16, top + 22),
             Width = 368,
         };

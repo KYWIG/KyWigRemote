@@ -44,20 +44,20 @@ internal sealed class ManagerForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(720, 520);
         Size = new Size(760, 560);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
-        var header = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = DarkPalette.PanelBackground };
+        var header = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = Palette.PanelBackground };
         _stateLabel = new Label
         {
             Text = "État : …", AutoSize = true, Location = new Point(16, 14),
-            Font = new Font("Segoe UI", 11f, FontStyle.Bold), ForeColor = DarkPalette.Text,
+            Font = new Font("Segoe UI", 11f, FontStyle.Bold), ForeColor = Palette.Text,
         };
         _pathLabel = new Label
         {
             AutoSize = false, Location = new Point(16, 44), Size = new Size(700, 20),
-            ForeColor = DarkPalette.TextMuted,
+            ForeColor = Palette.TextMuted,
             Text = _serverExe is null
                 ? "Exécutable du serveur introuvable — compile ou publie le serveur."
                 : $"Serveur : {_serverExe}",
@@ -65,7 +65,7 @@ internal sealed class ManagerForm : Form
         var adminLabel = new Label
         {
             AutoSize = false, Location = new Point(16, 66), Size = new Size(520, 20),
-            ForeColor = _isAdmin ? DarkPalette.TextMuted : Orange,
+            ForeColor = _isAdmin ? Palette.TextMuted : Orange,
             Text = _isAdmin
                 ? "Droits administrateur : présents."
                 : "Droits administrateur absents — les actions sur le service sont désactivées.",
@@ -79,14 +79,14 @@ internal sealed class ManagerForm : Form
             var elevate = new Button
             {
                 Text = "Relancer en administrateur", Location = new Point(540, 62), Width = 190, Height = 26,
-                FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+                FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             };
-            elevate.FlatAppearance.BorderColor = DarkPalette.Border;
+            elevate.FlatAppearance.BorderColor = Palette.Border;
             elevate.Click += (_, _) => RelaunchElevated();
             header.Controls.Add(elevate);
         }
 
-        var buttonBar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = DarkPalette.Background };
+        var buttonBar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Palette.Background };
         _installButton = MakeButton("Installer", 16, buttonBar, OnInstall);
         _uninstallButton = MakeButton("Désinstaller", 130, buttonBar, OnUninstall);
         _startButton = MakeButton("Démarrer", 260, buttonBar, OnStart);
@@ -96,21 +96,21 @@ internal sealed class ManagerForm : Form
         _logBox = new TextBox
         {
             Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
-            BackColor = Color.FromArgb(24, 26, 28), ForeColor = DarkPalette.Text, BorderStyle = BorderStyle.None,
+            BackColor = Color.FromArgb(24, 26, 28), ForeColor = Palette.Text, BorderStyle = BorderStyle.None,
             Font = new Font("Consolas", 9f), WordWrap = false,
         };
 
-        var logHeader = new Panel { Dock = DockStyle.Top, Height = 28, BackColor = DarkPalette.Background };
+        var logHeader = new Panel { Dock = DockStyle.Top, Height = 28, BackColor = Palette.Background };
         logHeader.Controls.Add(new Label
         {
-            Text = "Journal du serveur", AutoSize = true, Location = new Point(16, 6), ForeColor = DarkPalette.TextMuted,
+            Text = "Journal du serveur", AutoSize = true, Location = new Point(16, 6), ForeColor = Palette.TextMuted,
         });
         var clear = new Button
         {
             Text = "Effacer", Location = new Point(650, 2), Width = 90, Height = 24, Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
         };
-        clear.FlatAppearance.BorderColor = DarkPalette.Border;
+        clear.FlatAppearance.BorderColor = Palette.Border;
         clear.Click += (_, _) => _logBox.Clear();
         logHeader.Controls.Add(clear);
 
@@ -138,9 +138,9 @@ internal sealed class ManagerForm : Form
         var button = new Button
         {
             Text = text, Location = new Point(x, 8), Width = 108, Height = 30,
-            FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
         };
-        button.FlatAppearance.BorderColor = DarkPalette.Border;
+        button.FlatAppearance.BorderColor = Palette.Border;
         button.Click += onClick;
         parent.Controls.Add(button);
         return button;
@@ -151,7 +151,7 @@ internal sealed class ManagerForm : Form
         ServiceState state = _service.QueryState();
         (string text, Color color) = state switch
         {
-            ServiceState.NotInstalled => ("Service non installé", DarkPalette.TextMuted),
+            ServiceState.NotInstalled => ("Service non installé", Palette.TextMuted),
             ServiceState.Stopped => ("Service arrêté", Red),
             ServiceState.Running => ("Service démarré", Green),
             ServiceState.Pending => ("Transition en cours…", Orange),

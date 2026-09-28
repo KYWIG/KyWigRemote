@@ -26,8 +26,8 @@ internal sealed class NewEnforcedCredentialDialog : Form
         MinimizeBox = false;
         MaximizeBox = false;
         ClientSize = new Size(420, 340);
-        BackColor = DarkPalette.Background;
-        ForeColor = DarkPalette.Text;
+        BackColor = Palette.Background;
+        ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
         _labelBox = Field("Libellé :", 20);
@@ -37,11 +37,11 @@ internal sealed class NewEnforcedCredentialDialog : Form
         _secretBox.UseSystemPasswordChar = true;
         _groupsBox = Field("Groupes AD autorisés (séparés par ;) :", 236);
 
-        _statusLabel = new Label { Text = string.Empty, ForeColor = DarkPalette.Error, AutoSize = false, Location = new Point(16, 296), Size = new Size(388, 18) };
+        _statusLabel = new Label { Text = string.Empty, ForeColor = Palette.Error, AutoSize = false, Location = new Point(16, 296), Size = new Size(388, 18) };
 
-        var ok = new Button { Text = "Créer", Location = new Point(228, 300), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text };
+        var ok = new Button { Text = "Créer", Location = new Point(228, 300), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text };
         ok.Click += (_, _) => Submit();
-        var cancel = new Button { Text = "Annuler", Location = new Point(320, 300), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text, DialogResult = DialogResult.Cancel };
+        var cancel = new Button { Text = "Annuler", Location = new Point(320, 300), Width = 84, FlatStyle = FlatStyle.Flat, BackColor = Palette.InputBackground, ForeColor = Palette.Text, DialogResult = DialogResult.Cancel };
 
         AcceptButton = ok;
         CancelButton = cancel;
@@ -50,10 +50,10 @@ internal sealed class NewEnforcedCredentialDialog : Form
 
     private TextBox Field(string label, int top)
     {
-        Controls.Add(new Label { Text = label, ForeColor = DarkPalette.Text, AutoSize = true, Location = new Point(16, top) });
+        Controls.Add(new Label { Text = label, ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, top) });
         var box = new TextBox
         {
-            BorderStyle = BorderStyle.FixedSingle, BackColor = DarkPalette.InputBackground, ForeColor = DarkPalette.Text,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Palette.InputBackground, ForeColor = Palette.Text,
             Location = new Point(16, top + 22), Width = 388,
         };
         Controls.Add(box);
