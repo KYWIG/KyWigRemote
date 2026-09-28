@@ -31,12 +31,6 @@ public sealed class KyWigRemoteOptions
             errors.Add("KyWigRemote:Server:Urls est vide (ex. \"http://0.0.0.0:5080\").");
         }
 
-        if (Database.Provider == DatabaseProvider.SqlServer
-            && string.IsNullOrWhiteSpace(Database.SqlServerConnectionString))
-        {
-            errors.Add("KyWigRemote:Database:SqlServerConnectionString est requis quand Provider = SqlServer.");
-        }
-
         if (Authentication.Providers.Count == 0)
         {
             errors.Add("KyWigRemote:Authentication:Providers ne peut pas être vide (ex. [\"ActiveDirectory\"]).");
@@ -132,27 +126,21 @@ public sealed class DistributionOptions
     }
 }
 
-/// <summary>Moteur de base de données supporté.</summary>
+/// <summary>Moteur de base de données supporté. SQLite est le seul moteur retenu (SQL Server abandonné).</summary>
 public enum DatabaseProvider
 {
-    /// <summary>SQLite — développement et tests.</summary>
+    /// <summary>SQLite — moteur unique de KyWigRemote (serveur unique, quelques utilisateurs).</summary>
     Sqlite,
-
-    /// <summary>SQL Server — production.</summary>
-    SqlServer,
 }
 
 /// <summary>Choix et paramètres de la base.</summary>
 public sealed class DatabaseOptions
 {
-    /// <summary>Moteur retenu.</summary>
+    /// <summary>Moteur retenu (SQLite uniquement).</summary>
     public DatabaseProvider Provider { get; set; } = DatabaseProvider.Sqlite;
 
     /// <summary>Chemin du fichier SQLite (les variables d'environnement %VAR% sont développées).</summary>
     public string SqlitePath { get; set; } = @"%LOCALAPPDATA%\KyWigRemote\kywigremote.db";
-
-    /// <summary>Chaîne de connexion SQL Server (requise si Provider = SqlServer).</summary>
-    public string? SqlServerConnectionString { get; set; }
 
     /// <summary>Chemin SQLite avec les variables d'environnement résolues.</summary>
     public string ResolveSqlitePath() => Environment.ExpandEnvironmentVariables(SqlitePath);

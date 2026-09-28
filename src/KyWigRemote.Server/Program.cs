@@ -578,20 +578,10 @@ static void ConfigureClickOnceHosting(WebApplication app, DistributionOptions di
 // --- Ouverture de la base selon la configuration ---
 static Database OpenDatabase(DatabaseOptions databaseOptions)
 {
-    switch (databaseOptions.Provider)
-    {
-        case DatabaseProvider.Sqlite:
-            var database = new Database(databaseOptions.ResolveSqlitePath());
-            database.Initialize();
-            return database;
-
-        case DatabaseProvider.SqlServer:
-            throw new NotSupportedException(
-                "Le fournisseur SQL Server n'est pas encore implémenté. Utilisez Provider = Sqlite en attendant.");
-
-        default:
-            throw new InvalidOperationException($"Fournisseur de base inconnu : {databaseOptions.Provider}.");
-    }
+    // SQLite est le seul moteur supporté (SQL Server abandonné).
+    var database = new Database(databaseOptions.ResolveSqlitePath());
+    database.Initialize();
+    return database;
 }
 
 // --- Résolution de la clé de signature des jetons ---
