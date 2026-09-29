@@ -59,6 +59,19 @@ builder.Services.AddSingleton(options);
 
 builder.WebHost.UseUrls(options.Server.Urls);
 
+// Avertit si aucune URL HTTPS n'est configurée : l'API refusera alors le trafic réseau en clair
+// (hors boucle locale), sauf AllowInsecureHttp. But : ne jamais laisser passer un mot de passe
+// ou un jeton en clair sur le réseau sans que ce soit un choix explicite.
+bool anyHttps = options.Server.Urls
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Any(u => u.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+if (!anyHttps && !options.Server.AllowInsecureHttp)
+{
+    Log.Warning("Aucune URL HTTPS configurée : l'API refusera les requêtes réseau en clair "
+        + "(seules la boucle locale, /health et la page d'installation restent accessibles en HTTP). "
+        + "Configurez une URL HTTPS pour un accès réseau, ou KyWigRemote:Server:AllowInsecureHttp.");
+}
+
 builder.Services.ConfigureHttpJsonOptions(json =>
 {
     json.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -159,6 +172,39 @@ WebApplication app = builder.Build();
 
 // Journalise chaque requête (méthode, chemin, code, durée) — sans corps ni secret.
 app.UseSerilogRequestLogging();
+
+// Exige un canal chiffré pour l'API. L'outil transporte des mots de passe (login, jetons,
+// révélation de secrets) : ils ne doivent jamais circuler en clair sur le réseau. Le HTTP en
+// clair reste toléré vers la boucle locale (développement) et pour deux points publics (santé,
+// page d'installation). Ailleurs, une requête non HTTPS est refusée, sauf AllowInsecureHttp.
+if (!options.Server.AllowInsecureHttp)
+{
+    string installPath = options.Distribution.RequestPath;
+    app.Use(async (context, next) =>
+    {
+        bool secure = context.Request.IsHttps
+            || (context.Connection.RemoteIpAddress?.IsIPv4MappedToIPv6 == true
+                    ? System.Net.IPAddress.IsLoopback(context.Connection.RemoteIpAddress.MapToIPv4())
+                    : System.Net.IPAddress.IsLoopback(context.Connection.RemoteIpAddress ?? System.Net.IPAddress.None));
+        bool exempt = context.Request.Path.StartsWithSegments("/health")
+            || context.Request.Path.StartsWithSegments(installPath);
+
+        if (!secure && !exempt)
+        {
+            Log.Warning("Requête en clair refusée depuis {Remote} sur {Path} (HTTPS requis).",
+                context.Connection.RemoteIpAddress, context.Request.Path);
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "Connexion non sécurisée refusée : HTTPS est requis pour l'API. "
+                    + "Contactez l'administrateur (configurer une URL HTTPS, ou "
+                    + "KyWigRemote:Server:AllowInsecureHttp pour un réseau de confiance)."
+            });
+            return;
+        }
+        await next();
+    });
+}
 
 // Distribution ClickOnce du client (page d'installation publique), si un dossier est configuré.
 // Servie avant l'authentification : l'installeur doit être accessible sans jeton.
@@ -793,10 +839,19 @@ static byte[] ResolveSigningKey(JwtOptions jwt, ISettingsStore settings)
     string? stored = settings.Get(settingKey);
     if (string.IsNullOrEmpty(stored))
     {
-        stored = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)); // 384 bits
-        settings.Set(settingKey, stored);
+        byte[] generated = RandomNumberGenerator.GetBytes(48); // 384 bits
+        // Protégée par DPAPI (liée à la machine) avant d'être persistée : jamais en clair en base.
+        settings.Set(settingKey, MachineKeyProtector.Protect(generated));
+        return generated;
     }
-    return Convert.FromBase64String(stored);
+    if (MachineKeyProtector.IsProtected(stored))
+    {
+        return MachineKeyProtector.Unprotect(stored);
+    }
+    // Migration : ancienne clé stockée en clair → on la re-protège au passage (règles nº 1 et 6).
+    byte[] legacy = Convert.FromBase64String(stored);
+    settings.Set(settingKey, MachineKeyProtector.Protect(legacy));
+    return legacy;
 }
 
 // --- Écriture d'un événement d'audit ---
@@ -827,8 +882,18 @@ static byte[] ResolveCredentialMasterKey(ISettingsStore settings)
     string? stored = settings.Get(settingKey);
     if (string.IsNullOrEmpty(stored))
     {
-        stored = Convert.ToBase64String(RandomNumberGenerator.GetBytes(CredentialProtector.KeySize));
-        settings.Set(settingKey, stored);
+        byte[] generated = RandomNumberGenerator.GetBytes(CredentialProtector.KeySize);
+        // Protégée par DPAPI (liée à la machine) avant d'être persistée : la clé ne vit plus
+        // en clair à côté des secrets qu'elle chiffre. Copier le fichier .db ne suffit plus.
+        settings.Set(settingKey, MachineKeyProtector.Protect(generated));
+        return generated;
     }
-    return Convert.FromBase64String(stored);
+    if (MachineKeyProtector.IsProtected(stored))
+    {
+        return MachineKeyProtector.Unprotect(stored);
+    }
+    // Migration : clé maître héritée stockée en clair → re-protégée au premier démarrage.
+    byte[] legacy = Convert.FromBase64String(stored);
+    settings.Set(settingKey, MachineKeyProtector.Protect(legacy));
+    return legacy;
 }

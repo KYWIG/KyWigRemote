@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paramètres de test par défaut. Exclut la catégorie « RequiresAD » : ces tests nécessitent un
+  contrôleur de domaine joignable (kywig.ad) et échouent sur toute machine non jointe au domaine.
+  Ainsi « dotnet test » passe partout par défaut.
+
+  Pour les inclure (poste joint au domaine), passer en ligne de commande le filtre
+  « Category=RequiresAD » à « dotnet test » ; ce filtre a priorité sur ce fichier.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>Category!=RequiresAD</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

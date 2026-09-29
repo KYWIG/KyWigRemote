@@ -67,8 +67,21 @@ Une story = une journée de développement maximum. Si elle déborde, elle se d�
 
 ## État
 
+> ⚠️ Le projet a **pivoté** vers une architecture client/serveur (serveur ASP.NET Core), sous
+> licence GPL-2.0, avec chiffrement AES-256-GCM à clé maître serveur. Les décisions
+> post-pivot qui font autorité sont dans [`docs/06-evolutions.md`](docs/06-evolutions.md) ;
+> ce présent README et les documents `01`–`05` gardent leur valeur pour le problème, le
+> périmètre et l'ergonomie.
+
 | Elément | Etat |
 |---|---|
 | Cadrage BMAD | fait |
 | Suivi ERP | projet #20 créé |
-| Code | non démarré |
+| Code | **livré** — 7 projets, ~10 000 lignes, `dotnet build` et `dotnet test` verts |
+| Serveur (auth locale + AD, API, audit, chiffrement) | livré et vérifié |
+| Sessions RDP / SSH | livrées (rendu visuel à valider sur poste avec bureau) |
+| Distribution ClickOnce + installeur MSI | livrés (voir `docs/06-evolutions.md` §8) |
+| Microsoft 365 / Entra, fournisseur SQL Server | non livrés (voir `docs/06-evolutions.md` §8) |
+
+Solution réelle (voir `KyWigRemote.sln`) : `KyWigRemote.Core`, `.Server`, `.Client`, `.Admin`,
+`.ServerManager`, `.Shared.UI`, `.Tests`.

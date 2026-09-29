@@ -16,7 +16,10 @@ public sealed class PasswordHasher
     private const string Prefix = "pbkdf2-sha256";
     private const int SaltSize = 16;   // 128 bits
     private const int HashSize = 32;   // 256 bits
-    private const int Iterations = 100_000;
+    // 600 000 : recommandation OWASP 2024 pour PBKDF2-HMAC-SHA256. Le nombre d'itérations est
+    // stocké dans le hachage, donc l'augmenter n'invalide pas les hachages existants (ils sont
+    // vérifiés avec leur propre compteur) ; seuls les nouveaux mots de passe en profitent.
+    private const int Iterations = 600_000;
     private static readonly HashAlgorithmName Algorithm = HashAlgorithmName.SHA256;
 
     /// <summary>Produit un hachage salé à stocker pour le mot de passe fourni.</summary>

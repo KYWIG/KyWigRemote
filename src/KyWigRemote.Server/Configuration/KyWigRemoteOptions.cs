@@ -87,8 +87,22 @@ public sealed class KyWigRemoteOptions
 /// <summary>Paramètres d'hébergement du serveur.</summary>
 public sealed class ServerOptions
 {
-    /// <summary>Adresse(s) d'écoute HTTP. « http://0.0.0.0:5080 » pour écouter sur le réseau.</summary>
+    /// <summary>
+    /// Adresse(s) d'écoute, séparées par « ; ». En production, utiliser HTTPS
+    /// (ex. « https://0.0.0.0:5443 ») : l'outil transporte des mots de passe, ils ne doivent
+    /// jamais circuler en clair sur le réseau. Le HTTP en clair reste toléré vers la boucle
+    /// locale (développement) ; vers le réseau il est refusé sur les endpoints sensibles, sauf
+    /// <see cref="AllowInsecureHttp"/>.
+    /// </summary>
     public string Urls { get; set; } = "http://localhost:5080";
+
+    /// <summary>
+    /// Autorise explicitement le HTTP en clair depuis le réseau sur les endpoints sensibles
+    /// (déconseillé : à réserver à un réseau de confiance ou à un proxy TLS en amont). Par
+    /// défaut, seule la boucle locale et HTTPS sont acceptés pour l'authentification et la
+    /// révélation de secrets.
+    /// </summary>
+    public bool AllowInsecureHttp { get; set; }
 }
 
 /// <summary>

@@ -7,6 +7,10 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!-- Exclut « RequiresAD » par défaut (voir tests.runsettings) : « dotnet test » passe hors
+         domaine. Redéfinissable en ligne de commande avec l'option de filtre. -->
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\tests.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

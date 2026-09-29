@@ -9,6 +9,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.12" />
+    <!-- DPAPI (ProtectedData) : protège les clés au repos, lié à la machine. Paquet Microsoft
+         officiel (MIT), requis sur .NET pour ProtectedData. DPAPI figure dans la pile crypto
+         autorisée (CLAUDE.md). -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
   </ItemGroup>
 
 </Project>
