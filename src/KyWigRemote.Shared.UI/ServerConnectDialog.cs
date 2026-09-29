@@ -16,14 +16,24 @@ public sealed class ServerConnectDialog : Form
     private readonly TextBox _passwordBox;
     private readonly Button _connectButton;
     private readonly Label _statusLabel;
+    private readonly ConnectionPreferences _preferences;
 
     /// <summary>Client connecté et authentifié, disponible après un <see cref="DialogResult.OK"/>.</summary>
     public ServerClient? ConnectedClient { get; private set; }
 
     /// <param name="caption">Titre de la fenêtre (permet de distinguer client et administration).</param>
-    /// <param name="defaultUrl">Adresse pré-remplie, si connue.</param>
+    /// <param name="defaultUrl">
+    /// Adresse à imposer par défaut. Laissée nulle/vide, la dernière adresse utilisée
+    /// (préférences locales) est reprise, sinon « http://localhost:5080 ».
+    /// </param>
     public ServerConnectDialog(string caption, string? defaultUrl)
     {
+        _preferences = ConnectionPreferences.Load();
+
+        // Adresse pré-remplie : paramètre explicite, sinon dernière adresse retenue, sinon défaut.
+        string initialUrl = !string.IsNullOrWhiteSpace(defaultUrl) ? defaultUrl!
+            : !string.IsNullOrWhiteSpace(_preferences.LastServerUrl) ? _preferences.LastServerUrl!
+            : "http://localhost:5080";
         Text = caption;
         Icon = BrandAssets.LoginIcon;
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -35,11 +45,23 @@ public sealed class ServerConnectDialog : Form
         ForeColor = Palette.Text;
         Font = new Font("Segoe UI", 9f);
 
-        _urlBox = MakeField("Adresse du serveur :", 20,
-            string.IsNullOrWhiteSpace(defaultUrl) ? "http://localhost:5080" : defaultUrl);
-        _userBox = MakeField("Utilisateur :", 74, string.Empty);
+        _urlBox = MakeField("Adresse du serveur :", 20, initialUrl);
+        _userBox = MakeField("Utilisateur :", 74, _preferences.LastUsername ?? string.Empty);
         _passwordBox = MakeField("Mot de passe :", 128, string.Empty);
         _passwordBox.UseSystemPasswordChar = true;
+
+        // Si l'identifiant est déjà connu, on place le curseur directement sur le mot de passe.
+        Shown += (_, _) =>
+        {
+            if (!string.IsNullOrWhiteSpace(_userBox.Text))
+            {
+                _passwordBox.Focus();
+            }
+            else
+            {
+                _userBox.Focus();
+            }
+        };
 
         _statusLabel = new Label
         {
@@ -127,6 +149,10 @@ public sealed class ServerConnectDialog : Form
                 return;
             }
 
+            // Mémorise l'adresse pour le prochain lancement (jamais de mot de passe).
+            _preferences.LastServerUrl = client.BaseAddress.ToString();
+            _preferences.Save();
+
             ConnectedClient = client;
             DialogResult = DialogResult.OK;
             Close();
@@ -199,6 +225,11 @@ public sealed class ServerConnectDialog : Form
                 SetStatus("Identifiant ou mot de passe incorrect.", Palette.Error);
                 return;
             }
+
+            // Mémorise l'adresse et l'identifiant pour le prochain lancement (jamais le mot de passe).
+            _preferences.LastServerUrl = client.BaseAddress.ToString();
+            _preferences.LastUsername = _userBox.Text.Trim();
+            _preferences.Save();
 
             ConnectedClient = client;
             DialogResult = DialogResult.OK;

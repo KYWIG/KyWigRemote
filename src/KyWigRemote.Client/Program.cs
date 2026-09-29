@@ -19,18 +19,14 @@ internal static class Program
         // Charge le thème (clair/sombre) avant toute fenêtre, pour qu'il s'applique dès la construction.
         ThemeManager.Load();
 
-        ClientSettings settings = ClientSettings.Load();
-
-        using var dialog = new ServerConnectDialog("KyWigRemote — connexion au serveur", settings.LastServerUrl);
+        // L'adresse et l'identifiant précédents sont pré-remplis par la boîte de connexion
+        // elle-même (préférences partagées) : rien à gérer ici.
+        using var dialog = new ServerConnectDialog("KyWigRemote — connexion au serveur", defaultUrl: null);
         if (dialog.ShowDialog() != DialogResult.OK || dialog.ConnectedClient is null)
         {
             // Connexion annulée : on ne lance pas l'application.
             return;
         }
-
-        // Mémorise le serveur retenu pour le prochain lancement.
-        settings.LastServerUrl = dialog.ConnectedClient.BaseAddress.ToString();
-        settings.Save();
 
         Application.Run(new MainForm(dialog.ConnectedClient));
     }

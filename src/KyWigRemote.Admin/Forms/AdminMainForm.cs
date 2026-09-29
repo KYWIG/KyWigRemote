@@ -42,6 +42,11 @@ internal sealed class AdminMainForm : Form
         refresh.Click += async (_, _) => await LoadAccountsAsync();
         var create = new ToolStripButton("Nouveau compte") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         create.Click += async (_, _) => await CreateAccountAsync();
+        // Confort de dev : crée en un clic un administrateur global de test avec un mot de passe
+        // aléatoire. Visible uniquement sur un serveur local (jamais sur un serveur distant/prod).
+        var testAdmin = new ToolStripButton("Admin de test") { DisplayStyle = ToolStripItemDisplayStyle.Text };
+        testAdmin.Click += async (_, _) => await CreateTestAdminAsync();
+        bool isLocalServer = _server.BaseAddress.IsLoopback;
         var connections = new ToolStripButton("Connexions…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         connections.Click += (_, _) => OpenConnections();
         var enforced = new ToolStripButton("Identifiants imposés…") { DisplayStyle = ToolStripItemDisplayStyle.Text };
@@ -56,7 +61,12 @@ internal sealed class AdminMainForm : Form
         // La gestion des comptes, de l'AD et l'audit sont réservées à l'administrateur global ;
         // l'administrateur des connexions ne voit que la gestion des connexions.
         var items = new List<ToolStripItem> { refresh };
-        if (_isGlobalAdmin) { items.Add(new ToolStripSeparator()); items.Add(create); }
+        if (_isGlobalAdmin)
+        {
+            items.Add(new ToolStripSeparator());
+            items.Add(create);
+            if (isLocalServer) { items.Add(testAdmin); }
+        }
         items.Add(new ToolStripSeparator());
         items.Add(connections);
         items.Add(enforced);
@@ -207,6 +217,43 @@ internal sealed class AdminMainForm : Form
     {
         using var form = new AdUsersForm(_server);
         form.ShowDialog(this);
+    }
+
+    /// <summary>
+    /// Crée un administrateur global de test avec un mot de passe aléatoire, puis l'affiche une
+    /// fois. Confort de développement : le bouton n'est proposé que sur un serveur local.
+    /// </summary>
+    private async Task CreateTestAdminAsync()
+    {
+        string username = DevTestAdmin.NewUsername();
+        string password = DevTestAdmin.NewPassword();
+        var request = new CreateLocalAccountRequest(
+            username, password, "Admin de test", KyWigRemote.Core.Model.UserRole.GlobalAdmin);
+
+        try
+        {
+            LocalAccountSummary? created = await _server.CreateLocalAccountAsync(request);
+            if (created is null)
+            {
+                // Collision d'identifiant (très improbable, suffixe aléatoire) : on réessaiera.
+                MessageBox.Show(this,
+                    "L'identifiant de test généré existe déjà. Réessayez.",
+                    "KyWigRemote — Administration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var dialog = new TestAdminCreatedDialog(username, password))
+            {
+                dialog.ShowDialog(this);
+            }
+            await LoadAccountsAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            MessageBox.Show(this,
+                "Échec de la création de l'admin de test côté serveur.",
+                "KyWigRemote — Administration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private async Task CreateAccountAsync()

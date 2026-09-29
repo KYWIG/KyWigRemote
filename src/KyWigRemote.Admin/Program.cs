@@ -17,7 +17,8 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         ThemeManager.Load();
 
-        using var dialog = new ServerConnectDialog("KyWigRemote — Administration", "http://localhost:5080");
+        // Adresse et identifiant pré-remplis par la boîte de connexion (préférences partagées).
+        using var dialog = new ServerConnectDialog("KyWigRemote — Administration", defaultUrl: null);
         if (dialog.ShowDialog() != DialogResult.OK || dialog.ConnectedClient is null)
         {
             return;

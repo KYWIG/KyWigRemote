@@ -12,7 +12,8 @@
     en parametre par l'appelant (regle 5/6 de CLAUDE.md).
 
 .PARAMETER AdminPassword
-    Mot de passe du compte admin applicatif (fixture de dev). Obligatoire.
+    Mot de passe du compte admin applicatif (fixture de dev). Facultatif : s'il est omis, un mot
+    de passe aleatoire est genere et affiche une fois. Aucun secret n'est stocke dans ce script.
 
 .PARAMETER Port
     Port d'ecoute HTTP du serveur (defaut 5080).
@@ -24,11 +25,14 @@
     Ne lance pas le client ni la console d'administration (serveur seul).
 
 .EXAMPLE
+    .\tools\dev-run.ps1 -Reset
+    (mot de passe admin genere automatiquement et affiche)
+
+.EXAMPLE
     .\tools\dev-run.ps1 -AdminPassword 'MonMotDePasseDeDev!' -Reset
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
     [string] $AdminPassword,
     [int]    $Port = 5080,
     [switch] $Reset,
@@ -38,6 +42,33 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $base = "http://localhost:$Port"
+
+# Mot de passe admin : fourni par l'appelant, ou genere aleatoirement (fixture de dev, jamais en
+# dur dans le script - regles 5/6 de CLAUDE.md). Genere par le RNG cryptographique de .NET.
+$generatedPassword = $false
+if ([string]::IsNullOrWhiteSpace($AdminPassword)) {
+    $alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%*-_".ToCharArray()
+    $AdminPassword = -join (1..20 | ForEach-Object { $alphabet[[System.Security.Cryptography.RandomNumberGenerator]::GetInt32($alphabet.Length)] })
+    $generatedPassword = $true
+}
+
+# Runtime .NET : rend le host 'dotnet' resoluble pour les .exe lances (apphosts). Evite d'avoir
+# a positionner DOTNET_ROOT/PATH a la main quand le SDK est installe hors du PATH systeme.
+if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Microsoft\dotnet"),
+        "$env:ProgramFiles\dotnet",
+        "${env:ProgramFiles(x86)}\dotnet"
+    )
+    $dotnetDir = $candidates | Where-Object { $_ -and (Test-Path (Join-Path $_ "dotnet.exe")) } | Select-Object -First 1
+    if ($dotnetDir) {
+        $env:DOTNET_ROOT = $dotnetDir
+        $env:PATH = "$dotnetDir;$env:PATH"
+        Write-Host "Runtime .NET detecte : $dotnetDir"
+    } else {
+        Write-Warning "dotnet introuvable sur le PATH. Si les .exe ne demarrent pas, installe le runtime .NET 8 (Desktop + ASP.NET Core)."
+    }
+}
 
 function Exe([string] $name) {
     Join-Path $root "src\KyWigRemote.$name\bin\Debug\net8.0-windows\KyWigRemote.$name.exe"
@@ -91,4 +122,12 @@ if (-not $NoUi) {
 }
 
 Write-Host ""
-Write-Host "Pret. Connecte-toi avec : serveur=$base, utilisateur=admin, mot de passe=(celui fourni)."
+if ($generatedPassword) {
+    Write-Host "Pret. Connecte-toi avec :" -ForegroundColor Green
+    Write-Host "   serveur      = $base"
+    Write-Host "   utilisateur  = admin"
+    Write-Host "   mot de passe = $AdminPassword" -ForegroundColor Yellow
+    Write-Host "(mot de passe genere pour cette session - note-le, il n'est pas stocke en clair.)"
+} else {
+    Write-Host "Pret. Connecte-toi avec : serveur=$base, utilisateur=admin, mot de passe=(celui fourni)."
+}
